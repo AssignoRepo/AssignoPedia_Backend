@@ -10,12 +10,16 @@ const { GridFsStorage } = require('multer-gridfs-storage');
 const Grid = require('gridfs-stream');
 
 const app = express();
+app.use(express.static(path.join(__dirname,"public")));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Public', 'index.html'));
+});
 app.use(cors({
   origin: '*', // for development only
   //exposedHeaders: ['Authorization']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname,"public")));
+
 
 // ✅ MongoDB Connection
 const conn = mongoose.createConnection(process.env.MONGODB_URI, {
