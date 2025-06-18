@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pay Slip Generation - Assignopedia</title>
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .pay-slip-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .pay-slip-form {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .form-group {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        color: #333;
+      }
+
+      .form-group input,
+      .form-group select {
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+
+      .submit-btn {
+        background: #4f3ca7;
+        color: white;
+        padding: 1rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      .submit-btn:hover {
+        background: #3a2c7d;
+      }
+
+      .message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="pay-slip-container">
+      <h2>Pay Slip Generation</h2>
+      <form id="paySlipForm" class="pay-slip-form">
+        <div class="form-group">
+          <label for="employeeId">Employee ID</label>
+          <input type="text" id="employeeId" name="employeeId" required />
+        </div>
+        <div class="form-group">
+          <label for="month">Month</label>
+          <select id="month" name="month" required>
+            <option value="">Select Month</option>
+            <option value="01">January</option>
+            <option value="02">February</option>
+            <option value="03">March</option>
+            <option value="04">April</option>
+            <option value="05">May</option>
+            <option value="06">June</option>
+            <option value="07">July</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">October</option>
+            <option value="11">November</option>
+            <option value="12">December</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="year">Year</label>
+          <input type="number" id="year" name="year" min="2000" max="2100" required />
+        </div>
+        <div class="form-group">
+          <label for="basicSalary">Basic Salary</label>
+          <input type="number" id="basicSalary" name="basicSalary" required />
+        </div>
+        <div class="form-group">
+          <label for="allowances">Allowances</label>
+          <input type="number" id="allowances" name="allowances" required />
+        </div>
+        <button type="submit" class="submit-btn">Generate Pay Slip</button>
+      </form>
+      <div id="message" class="message" style="display: none"></div>
+    </div>
+
+    <script>
+      document.getElementById("paySlipForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        const formData = {
+          employeeId: document.getElementById("employeeId").value,
+          month: document.getElementById("month").value,
+          year: document.getElementById("year").value,
+          basicSalary: parseFloat(document.getElementById("basicSalary").value),
+          allowances: parseFloat(document.getElementById("allowances").value),
+        };
+
+        try {
+          const response = await fetch("http://localhost:5000/api/pay-slip", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+            },
+            body: JSON.stringify(formData),
+          });
+
+          const data = await response.json();
+          const messageDiv = document.getElementById("message");
+          messageDiv.style.display = "block";
+
+          if (response.ok) {
+            messageDiv.className = "message success";
+            messageDiv.textContent = "Pay slip generated successfully!";
+            this.reset();
+          } else {
+            messageDiv.className = "message error";
+            messageDiv.textContent = data.message || "Failed to generate pay slip";
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          const messageDiv = document.getElementById("message");
+          messageDiv.style.display = "block";
+          messageDiv.className = "message error";
+          messageDiv.textContent = "An error occurred. Please try again.";
+        }
+      });
+    </script>
+  </body>
+</html>
