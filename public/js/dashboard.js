@@ -6,7 +6,7 @@ import socialMediaService from './social-media-service.js';
 window.approveLeaveRequest = async function(id) {
     try {
         const token = localStorage.getItem("jwtToken");
-        const res = await fetch(`http://localhost:5000/api/leave-requests/${id}/approve`, {
+        const res = await fetch(`/api/leave-requests/${id}/approve`, {
             method: 'PATCH',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -28,7 +28,7 @@ window.approveLeaveRequest = async function(id) {
 window.rejectLeaveRequest = async function(id) {
     try {
         const token = localStorage.getItem("jwtToken");
-        const res = await fetch(`http://localhost:5000/api/leave-requests/${id}/reject`, {
+        const res = await fetch(`/api/leave-requests/${id}/reject`, {
             method: 'PATCH',
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -373,7 +373,7 @@ console.log(employee);
       };
 
       try {
-        const res = await fetch("http://localhost:5000/api/leave-requests", {
+        const res = await fetch("/api/leave-requests", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -796,7 +796,7 @@ console.log(employee);
       try {
         const token=localStorage.getItem("jwtToken");
         console.log("Token at employee form",token);
-        const res = await fetch("http://localhost:5000/api/employees", {
+        const res = await fetch("/api/employees", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -871,7 +871,7 @@ console.log(employee);
     `;
     try {
       const token=localStorage.getItem("jwtToken");
-      const res = await fetch("http://localhost:5000/api/employees/stats", {
+      const res = await fetch("/api/employees/stats", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -1179,7 +1179,7 @@ console.log(employee);
 
     // Load leave requests
     try {
-      const res = await fetch("http://localhost:5000/api/leave-requests", {
+      const res = await fetch("/api/leave-requests", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -1276,7 +1276,7 @@ console.log(employee);
     row.innerHTML = `
       <td>
         <div class="employee-info">
-          <img src="${employee.profileImage ? `http://localhost:5000/api/employees/${employee._id}/profile-image` : 'images/default-avatar.png'}" 
+          <img src="${employee.profileImage ? `/api/employees/${employee._id}/profile-image` : 'images/default-avatar.png'}" 
                alt="${employee.firstName}" 
                class="employee-avatar">
           <div>
@@ -1496,7 +1496,7 @@ console.log(employee);
       };
 
       try {
-        const response = await fetch("http://localhost:5000/api/pay-slip", {
+        const response = await fetch("/api/pay-slip", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
