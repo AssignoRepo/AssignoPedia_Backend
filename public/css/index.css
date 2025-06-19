@@ -808,7 +808,7 @@
         .service-icon {
             font-size: 4rem;
             margin-bottom: 2rem;
-            background: var(--gradient);
+            background: var(--secondary-color);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -903,7 +903,7 @@
         /* CTA Section */
         .cta-section {
             padding: 100px 0;
-            background: var(--gradient);
+            background: var(--secondary-color);
             position: relative;
             overflow: hidden;
             text-align: center;
