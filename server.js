@@ -2480,6 +2480,18 @@ const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toF
       netPayWords: numberToWords(Math.round(finalNetPay)) + ' Only'
     };
 
+
+    const existingPayslip = await PaySlip.findOne({
+  employeeId,
+  month: parseInt(month),
+  year: parseInt(year)
+});
+if (existingPayslip) {
+  return res.status(409).json({
+    success: false,
+    message: 'Payslip for this employee id in current month and year already exists.Contact with Administrator.'
+  });
+}
     // Store in DB
     const paySlipDoc = new PaySlip({
       ...data,
@@ -2744,7 +2756,7 @@ app.post('/api/payslip/send-notification', authenticateToken, requireHRorAdmin, 
     const downloadUrl = `/api/download-payslip?employeeId=${encodeURIComponent(employeeId)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`;
     // Create notification (NO EMAIL)
     const notification = new Notification({
-      message: 'Your pay slip has been generated. Now click the download to generate the pay slip. Thank You.',
+      message: 'Your pay slip has been generated. Now go to My Pay-Slip section to generate the pay slip.If any issue ,contact with administrator.',
       senderId: req.user.employeeId,
       senderName: req.user.name || req.user.employeeId,
       recipientId: employeeId,
@@ -3382,16 +3394,36 @@ app.get('/api/mypayslips', authenticateToken, async (req, res) => {
       return res.json({ success: true, payslips: [] });
     }
     // Map to required fields
-    const result = payslips.map(slip => ({
-      slipId: slip._id,
-      month: slip.month,
-      year: slip.year,
-      monthName: new Date(slip.year, slip.month - 1).toLocaleString('default', { month: 'long' }),
-      uploadedOn: slip.createdAt ? new Date(slip.createdAt).toLocaleDateString() : '',
-      status: slip.status || 'new', // fallback to 'new' if not present
-    }));
+     // In server.js, /api/mypayslips endpoint:
+  const result = payslips.map(slip => ({
+    slipId: slip._id,
+    employeeId: slip.employeeId, // <-- ADD THIS LINE
+    month: slip.month,
+    year: slip.year,
+    monthName: new Date(slip.year, slip.month - 1).toLocaleString('default', { month: 'long' }),
+    uploadedOn: slip.createdAt ? new Date(slip.createdAt).toLocaleDateString() : '',
+    status: slip.status || 'new',
+  }));
     res.json({ success: true, payslips: result });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error fetching payslips.' });
   }
 });
+  // Add this to server.js
+  app.post('/api/payslip/mark-viewed', authenticateToken, async (req, res) => {
+    try {
+      const { employeeId, month, year } = req.body;
+      if (!employeeId || !month || !year) {
+        return res.status(400).json({ success: false, message: 'Missing params' });
+      }
+      const payslip = await PaySlip.findOne({ employeeId, month: parseInt(month), year: parseInt(year) });
+      if (!payslip) {
+        return res.status(404).json({ success: false, message: 'Payslip not found' });
+      }
+      payslip.status = 'viewed';
+      await payslip.save();
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    }
+  });

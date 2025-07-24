@@ -230,163 +230,366 @@ let isAdminOrHRRecruiter = false;
 let mainContent = null;
 
 // Make renderPaySlipHTML globally available
+// function renderPaySlipHTML(slip, isPreviewOnly = false) {
+//   console.log(slip);
+//   return `
+//   <style>
+//     .payslip-main-box {
+//       max-width: 800px;
+//       margin: 32px auto;
+//       border: 2px solid #7c4dbe;
+//       border-radius: 6px;
+//       background: #fff;
+//       font-family: 'Segoe UI', Arial, sans-serif;
+//       color: #222;
+//       box-shadow: 0 2px 16px rgba(124,77,190,0.08);
+//       padding: 0;
+//     }
+//     .payslip-header-row {
+//       display: flex;
+//       justify-content: space-between;
+//       align-items: flex-start;
+//       padding: 24px 32px 0 32px;
+//     }
+//     .payslip-header-title {
+//       font-size: 1.4em;
+//       font-weight: 700;
+//       color: #2d197c;
+//       margin-bottom: 4px;
+//     }
+//     .payslip-header-logo {
+//       height: 60px;
+//       margin-left: 16px;
+//     }
+//     .payslip-period {
+//       font-size: 1.1em;
+//       color: #222;
+//       margin-bottom: 12px;
+//       text-align: right;
+//     }
+//     .payslip-section {
+//       margin: 0 32px 24px 32px;
+//       border: 1px solid #e0d7f3;
+//       border-radius: 4px;
+//       overflow: hidden;
+//     }
+//     .payslip-section-title {
+//       background: #7c4dbe;
+//       color: #fff;
+//       font-weight: 600;
+//       padding: 8px 16px;
+//       font-size: 1.08em;
+//       border-bottom: 1px solid #e0d7f3;
+//     }
+//     .payslip-table-wrapper {
+//       overflow-x: auto;
+//       background: transparent;
+//       margin: 0;
+//       padding: 0;
+//     }
+//     .payslip-table {
+//       width: 100%;
+//       border-collapse: collapse;
+//       font-size: 1em;
+//       min-width: 600px;
+//       margin: 0;
+//       background: #fff;
+//     }
+//     .payslip-table th, .payslip-table td {
+//       border: 1px solid #e0d7f3;
+//       padding: 8px 12px;
+//       text-align: left;
+//     }
+//     .payslip-table th {
+//       background: #f3eaff;
+//       color: #2d197c;
+//       font-weight: 600;
+//     }
+//     .payslip-table td {
+//       background: #fff;
+//     }
+//     .payslip-net-row th, .payslip-net-row td {
+//       font-size: 1.1em;
+//       font-weight: 700;
+//       color: #2d197c;
+//       background: #f3eaff;
+//     }
+//     .payslip-footer {
+//       margin: 24px 32px 24px 32px;
+//       font-size: 0.98em;
+//       color: #888;
+//       text-align: right;
+//     }
+//     @media (max-width: 600px) {
+//       .payslip-section {
+//         margin: 0 0 18px 0;
+//         border-radius: 0;
+//       }
+//       .payslip-table {
+//         min-width: 500px;
+//         font-size: 14px;
+//         border-radius: 8px;
+//         display: table;
+//       }
+//       .payslip-table th, .payslip-table td {
+//         white-space: nowrap;
+//         padding: 8px 10px;
+//       }
+//       .payslip-table-wrapper {
+//         overflow-x: auto;
+//         -webkit-overflow-scrolling: touch;
+//         background: transparent;
+//         margin: 0;
+//         padding: 0;
+//       }
+//     }
+//   </style>
+//   <div class="payslip-main-box">
+//     <div class="payslip-header-row">
+//       <div>
+//         <div class="payslip-header-title">Assignopedia Services</div>
+//         <div class="payslip-period">Payslip for the Month of <b>${slip.monthName} ${slip.year}</b></div>
+//       </div>
+//       <img src="images/logo.png" alt="Logo" class="payslip-header-logo" />
+//     </div>
+//     <div class="payslip-section">
+//       <div class="payslip-section-title">Employee Details</div>
+//       <div class="payslip-table-wrapper"><table class="payslip-table">
+//         <tr><th>Employee Name</th><td>${slip.employeeName || ''}</td><th>Employee ID</th><td>${slip.employeeId || ''}</td></tr>
+//         <tr><th>Department</th><td>${slip.department || ''}</td><th>Designation</th><td>${slip.designation || ''}</td></tr>
+//         <tr><th>Employee Address</th><td colspan="3">${slip.location || ''}</td></tr>
+//         <tr><th>Date of Joining</th><td>${slip.doj || ''}</td><td colspan="2"></td></tr>
+//       </table></div>
+//     </div>
+//     <div class="payslip-section">
+//       <div class="payslip-section-title">Attendance Summary</div>
+//       <div class="payslip-table-wrapper"><table class="payslip-table">
+//         <tr><th>Total Present</th><th>Total Absent</th><th>Paid Leaves</th><th>NPL</th><th>DNPL</th></tr>
+//         <tr>
+//           <td>${slip.workingDays || ''}</td>
+//           <td>${slip.absentDays || ''}</td>
+//           <td>${slip.paidLeaves || ''}</td>
+//           <td>${slip.nplCount || ''}</td>
+//           <td>${slip.dnplCount || ''}</td>
+//         </tr>
+//       </table></div>
+//     </div>
+//     <div class="payslip-section">
+//       <div class="payslip-section-title">Earnings</div>
+//       <div class="payslip-table-wrapper"><table class="payslip-table">
+//         <tr><th>Description</th><th>Amount (INR)</th></tr>
+//         <tr><td>Basic Salary</td><td>${slip.basic || '0.00'}</td></tr>
+//         <tr><td>HRA</td><td>${slip.hra || '0.00'}</td></tr>
+//         <tr><td>Special Allowance</td><td>${slip.specialAllowance || '0.00'}</td></tr>
+//         <tr><th>Total Earnings</th><th>${slip.totalEarnings || '0.00'}</th></tr>
+//       </table></div>
+//     </div>
+//     <div class="payslip-section">
+//       <div class="payslip-section-title">Deductions</div>
+//       <div class="payslip-table-wrapper"><table class="payslip-table">
+//         <tr><th>Description</th><th>Amount (INR)</th></tr>
+//         <tr><td>Provident Fund (PF)</td><td>${slip.epf || '0.00'}</td></tr>
+//         <tr><td>ESI</td><td>${slip.esi || '0.00'}</td></tr>
+//         <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
+//         <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
+//         <tr><th>Total Deductions</th>
+//           <th>
+//             ${isPreviewOnly
+//               ? `<input id="editTotalDeductions" type="number" value="${slip.totalDeductions || '0.00'}" style="width:120px;">`
+//               : (slip.totalDeductions || '0.00')}
+//           </th></tr>
+//       </table></div>
+//     </div>
+//     <div class="payslip-section">
+//       <div class="payslip-section-title">Net Salary</div>
+//       <div class="payslip-table-wrapper"><table class="payslip-table">
+//         <tr class="payslip-net-row"><th>Net Pay (INR)</th><td>
+//             ${isPreviewOnly
+//               ? `<input id="editNetPay" type="number" value="${slip.netPay || '0.00'}" style="width:120px;">`
+//               : (slip.netPay || '0.00')}
+//           </td></tr>
+//         <tr><th>Net Pay (in words)</th><td>${slip.netPayWords || ''}</td></tr>
+//       </table></div>
+//     </div>
+//     <div class="payslip-footer">
+//       This is a system generated payslip and does not require signature.
+//     </div>
+//   </div>
+//   `;
+// }
+
 function renderPaySlipHTML(slip, isPreviewOnly = false) {
-  console.log(slip);
   return `
   <style>
-    .payslip-main-box {
+    .payslip-container {
       max-width: 800px;
-      margin: 32px auto;
-      border: 2px solid #7c4dbe;
-      border-radius: 6px;
+      margin: auto;
+      padding: 25px;
       background: #fff;
-      font-family: 'Segoe UI', Arial, sans-serif;
-      color: #222;
-      box-shadow: 0 2px 16px rgba(124,77,190,0.08);
-      padding: 0;
+      border: 3px solid #764ba2;
+      position: relative;
+      background: rgba(255,255,255,0.9);
+      opacity: 1;
     }
-    .payslip-header-row {
+    .header {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: flex-start;
-      padding: 24px 32px 0 32px;
+      border-bottom: 2px solid #004080;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
     }
-    .payslip-header-title {
-      font-size: 1.4em;
-      font-weight: 700;
-      color: #2d197c;
-      margin-bottom: 4px;
-    }
-    .payslip-header-logo {
+    .header img {
       height: 60px;
-      margin-left: 16px;
     }
-    .payslip-period {
-      font-size: 1.1em;
-      color: #222;
-      margin-bottom: 12px;
-      text-align: right;
+    .header .company-name {
+      font-size: 22px;
+      font-weight: bold;
+      color: #004080;
+      text-align: left;
+      flex: 1;
     }
-    .payslip-section {
-      margin: 0 32px 24px 32px;
-      border: 1px solid #e0d7f3;
-      border-radius: 4px;
-      overflow: hidden;
+    h3 {
+      text-align: center;
+      margin-bottom: 10px;
     }
-    .payslip-section-title {
-      background: #7c4dbe;
-      color: #fff;
-      font-weight: 600;
-      padding: 8px 16px;
-      font-size: 1.08em;
-      border-bottom: 1px solid #e0d7f3;
-    }
-    .payslip-table {
+    table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 1em;
+      margin-bottom: 20px;
+      background: rgba(255,255,255,0.9);
     }
-    .payslip-table th, .payslip-table td {
-      border: 1px solid #e0d7f3;
-      padding: 8px 12px;
+    th, td {
+      padding: 10px;
       text-align: left;
+      border: 1px solid #ddd;
     }
-    .payslip-table th {
-      background: #f3eaff;
-      color: #2d197c;
-      font-weight: 600;
+    th {
+      background: #f0f0f0;
     }
-    .payslip-table td {
-      background: #fff;
+    .section-title {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 8px;
+      font-weight: bold;
+      margin-top: 30px;
     }
-    .payslip-net-row th, .payslip-net-row td {
-      font-size: 1.1em;
-      font-weight: 700;
-      color: #2d197c;
-      background: #f3eaff;
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #555;
+      margin-top: 30px;
     }
-    .payslip-footer {
-      margin: 24px 32px 24px 32px;
-      font-size: 0.98em;
-      color: #888;
-      text-align: right;
+    .net-amount-words {
+      font-style: italic;
+      margin-top: -10px;
+      font-size: 14px;
+      color: #333;
     }
-    @media (max-width: 900px) {
-      .payslip-main-box, .payslip-section, .payslip-footer, .payslip-header-row {
-        margin: 0;
-        padding: 0 8px;
+    @media screen and (max-width: 600px) {
+      .payslip-container {
+        padding: 15px;
+        border: none;
+      }
+      .header {
+        flex-direction: row;
+        align-items: flex-start;
+        text-align: left;
+      }
+      .header img {
+        margin-bottom: 10px;
+        height:35px;
+      }
+      .header .company-name {
+        text-align: left;
+        font-size: 20px;
+      }
+      table {
+        font-size: 14px;
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+      }
+      th, td {
+        padding: 8px;
+      }
+      .section-title {
+        font-size: 16px;
+      }
+      .net-amount-words {
+        font-size: 13px;
+      }
+      .footer {
+        font-size: 12px;
       }
     }
   </style>
-  <div class="payslip-main-box">
-    <div class="payslip-header-row">
-      <div>
-        <div class="payslip-header-title">Assignopedia Services</div>
-        <div class="payslip-period">Payslip for the Month of <b>${slip.monthName} ${slip.year}</b></div>
-      </div>
-      <img src="images/logo.png" alt="Logo" class="payslip-header-logo" />
+  <div class="payslip-container">
+    <div class="header">
+      <div class="company-name">Assignopedia Services</div>
+      <img src="images/logo.png" alt="Company Logo">
     </div>
-    <div class="payslip-section">
-      <div class="payslip-section-title">Employee Details</div>
-      <table class="payslip-table">
-        <tr><th>Employee Name</th><td>${slip.employeeName || ''}</td><th>Employee ID</th><td>${slip.employeeId || ''}</td></tr>
-        <tr><th>Department</th><td>${slip.department || ''}</td><th>Designation</th><td>${slip.designation || ''}</td></tr>
-        <tr><th>Employee Address</th><td colspan="3">${slip.location || ''}</td></tr>
-        <tr><th>Date of Joining</th><td>${slip.doj || ''}</td><td colspan="2"></td></tr>
-      </table>
-    </div>
-    <div class="payslip-section">
-      <div class="payslip-section-title">Attendance Summary</div>
-      <table class="payslip-table">
-        <tr><th>Total Present</th><th>Total Absent</th><th>Paid Leaves</th><th>NPL</th><th>DNPL</th></tr>
-        <tr>
-          <td>${slip.workingDays || ''}</td>
-          <td>${slip.absentDays || ''}</td>
-          <td>${slip.paidLeaves || ''}</td>
-          <td>${slip.nplCount || ''}</td>
-          <td>${slip.dnplCount || ''}</td>
-        </tr>
-      </table>
-    </div>
-    <div class="payslip-section">
-      <div class="payslip-section-title">Earnings</div>
-      <table class="payslip-table">
-        <tr><th>Description</th><th>Amount (INR)</th></tr>
-        <tr><td>Basic Salary</td><td>${slip.basic || '0.00'}</td></tr>
-        <tr><td>HRA</td><td>${slip.hra || '0.00'}</td></tr>
-        <tr><td>Special Allowance</td><td>${slip.specialAllowance || '0.00'}</td></tr>
-        <tr><th>Total Earnings</th><th>${slip.totalEarnings || '0.00'}</th></tr>
-      </table>
-    </div>
-    <div class="payslip-section">
-      <div class="payslip-section-title">Deductions</div>
-      <table class="payslip-table">
-        <tr><th>Description</th><th>Amount (INR)</th></tr>
-        <tr><td>Provident Fund (PF)</td><td>${slip.epf || '0.00'}</td></tr>
-        <tr><td>ESI</td><td>${slip.esi || '0.00'}</td></tr>
-        <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
-        <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
-        <tr><th>Total Deductions</th>
-          <th>
-            ${isPreviewOnly
-              ? `<input id="editTotalDeductions" type="number" value="${slip.totalDeductions || '0.00'}" style="width:120px;">`
-              : (slip.totalDeductions || '0.00')}
-          </th></tr>
-      </table>
-    </div>
-    <div class="payslip-section">
-      <div class="payslip-section-title">Net Salary</div>
-      <table class="payslip-table">
-        <tr class="payslip-net-row"><th>Net Pay (INR)</th><td>
-            ${isPreviewOnly
-              ? `<input id="editNetPay" type="number" value="${slip.netPay || '0.00'}" style="width:120px;">`
-              : (slip.netPay || '0.00')}
-          </td></tr>
-        <tr><th>Net Pay (in words)</th><td>${slip.netPayWords || ''}</td></tr>
-      </table>
-    </div>
-    <div class="payslip-footer">
-      This is a system generated payslip and does not require signature.
+    <h3>Payslip for the Month of ${slip.monthName || ''} ${slip.year || ''}</h3>
+    <div class="section-title">Employee Details</div>
+    <table>
+      <tr><th>Employee Name</th><td>${slip.employeeName || ''}</td></tr>
+      <tr><th>Employee ID</th><td>${slip.employeeId || ''}</td></tr>
+      
+      <tr><th>Designation</th><td>${slip.designation || ''}</td></tr>
+      <tr><th>Employee Address</th><td>${slip.location || ''}</td></tr>
+      <tr><th>Date of Joining</th><td>${slip.doj || ''}</td></tr>
+    </table>
+    <div class="section-title">Attendance Summary</div>
+    <table>
+      <tr>
+        <th>Total Present</th>
+        <th>Total Absent</th>
+        <th>Paid Leaves</th>
+        <th>NPL</th>
+        <th>DNPL</th>
+      </tr>
+      <tr>
+        <td>${slip.workingDays || ''}</td>
+        <td>${slip.absentDays || ''}</td>
+        <td>${slip.paidLeaves || ''}</td>
+        <td>${slip.nplCount || ''}</td>
+        <td>${slip.dnplCount || ''}</td>
+      </tr>
+    </table>
+    <div class="section-title">Earnings</div>
+    <table>
+      <tr><th>Description</th><th>Amount (INR)</th></tr>
+      <tr><td>Basic Salary</td><td>${slip.basic || '0.00'}</td></tr>
+      <tr><td>HRA</td><td>${slip.hra || '0.00'}</td></tr>
+      <tr><td>Special Allowance</td><td>${slip.specialAllowance || '0.00'}</td></tr>
+      <tr><th>Total Earnings</th><th>${slip.totalEarnings || '0.00'}</th></tr>
+    </table>
+    <div class="section-title">Deductions</div>
+    <table>
+      <tr><th>Description</th><th>Amount (INR)</th></tr>
+      <tr><td>Provident Fund (PF)</td><td>${slip.epf || '0.00'}</td></tr>
+      <tr><td>ESI</td><td>${slip.esi || '0.00'}</td></tr>
+      <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
+      <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
+      <tr><th>Total Deductions</th>
+        <th>
+          ${isPreviewOnly
+            ? `<input id="editTotalDeductions" type="number" value="${slip.totalDeductions || '0.00'}" style="width:120px;">`
+            : (slip.totalDeductions || '0.00')}
+        </th></tr>
+    </table>
+    <div class="section-title">Net Salary</div>
+    <table>
+      <tr><th>Net Pay (INR)</th><td>
+        ${isPreviewOnly
+          ? `<input id="editNetPay" type="number" value="${slip.netPay || '0.00'}" style="width:120px;">`
+          : (slip.netPay || '0.00')}
+      </td></tr>
+    </table>
+    <div class="net-amount-words">Amount in words: <strong>${slip.netPayWords || ''}</strong></div>
+    <div class="footer">
+      This is a computer-generated payslip and does not require a signature.<br>
+      For any queries, contact HR at hr@example.com
     </div>
   </div>
   `;
@@ -592,7 +795,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add HR-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
+  // Add employee-specific buttons to sidebar
 
+    document.getElementById('btn-pay-slip-schedule').onclick = loadPaySlipSchedule;
 
     if (!document.getElementById("btn-organization-structure")) {
       const sidebarNav = document.querySelector(".sidebar-nav");
@@ -738,7 +943,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add BDM/TL-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
-    
+      // Add employee-specific buttons to sidebar
+   
+    document.getElementById('btn-pay-slip-schedule').onclick = loadPaySlipSchedule;
     // Add WFH Request button
     if (!document.getElementById("btn-wfh")) {
       const wfhBtn = document.createElement("button");
@@ -838,34 +1045,34 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
     
-      if (!document.getElementById('btn-pay-slip-view')) {
-        const paySlipViewBtn = document.createElement('button');
-        paySlipViewBtn.id = 'btn-pay-slip-view';
-        paySlipViewBtn.className = 'sidebar-btn';
-        paySlipViewBtn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i> Pay Slip View';
-        // Insert after Pay Slip Admin if present, else before Attendance
-        const paySlipAdminBtn = document.getElementById('btn-pay-slip');
-        if (paySlipAdminBtn && paySlipAdminBtn.nextSibling) {
-          sidebarNav.insertBefore(paySlipViewBtn, paySlipAdminBtn.nextSibling);
-        } else if (paySlipAdminBtn) {
-          sidebarNav.appendChild(paySlipViewBtn);
-        } else {
-          const attendanceBtn = document.getElementById('btn-attendance');
-          if (attendanceBtn) {
-            sidebarNav.insertBefore(paySlipViewBtn, attendanceBtn);
-          } else {
-            sidebarNav.appendChild(paySlipViewBtn);
-          }
-        }
-        paySlipViewBtn.addEventListener('click', () => {
-          setActive('btn-pay-slip-view');
-          loadPaySlipView();
-          if (window.innerWidth <= 768) {
-            document.getElementById('sidebar').classList.remove('show');
-            document.getElementById('sidebarOverlay').classList.remove('active');
-          }
-        });
-      }
+      // if (!document.getElementById('btn-pay-slip-view')) {
+      //   const paySlipViewBtn = document.createElement('button');
+      //   paySlipViewBtn.id = 'btn-pay-slip-view';
+      //   paySlipViewBtn.className = 'sidebar-btn';
+      //   paySlipViewBtn.innerHTML = '<i class="fas fa-file-invoice-dollar"></i> Pay Slip View';
+      //   // Insert after Pay Slip Admin if present, else before Attendance
+      //   const paySlipAdminBtn = document.getElementById('btn-pay-slip');
+      //   if (paySlipAdminBtn && paySlipAdminBtn.nextSibling) {
+      //     sidebarNav.insertBefore(paySlipViewBtn, paySlipAdminBtn.nextSibling);
+      //   } else if (paySlipAdminBtn) {
+      //     sidebarNav.appendChild(paySlipViewBtn);
+      //   } else {
+      //     const attendanceBtn = document.getElementById('btn-attendance');
+      //     if (attendanceBtn) {
+      //       sidebarNav.insertBefore(paySlipViewBtn, attendanceBtn);
+      //     } else {
+      //       sidebarNav.appendChild(paySlipViewBtn);
+      //     }
+      //   }
+      //   paySlipViewBtn.addEventListener('click', () => {
+      //     setActive('btn-pay-slip-view');
+      //     loadPaySlipView();
+      //     if (window.innerWidth <= 768) {
+      //       document.getElementById('sidebar').classList.remove('show');
+      //       document.getElementById('sidebarOverlay').classList.remove('active');
+      //     }
+      //   });
+      // }
     
   }
 
@@ -2330,186 +2537,676 @@ document.addEventListener("DOMContentLoaded", () => {
     return row;
   }
 
-  function loadPaySlipAdmin() {
-    if (!isAdminRole && !isHRRole) {
-      alert("Access denied. Only administrators and HR personnel can generate pay slips.");
-      return;
-    }
+  // function loadPaySlipAdmin() {
+  //   if (!isAdminRole && !isHRRole) {
+  //     alert("Access denied. Only administrators and HR personnel can generate pay slips.");
+  //     return;
+  //   }
 
-    setActive("btn-pay-slip");
-    mainContent.innerHTML = `
-      <div class="pay-slip-outer" id="paySlipOuter">
-        <div class="admin-content-section pay-slip-section" id="pay-slip-admin-section">
-          <div class="scrollable-form-container">
-            <div class="pay-slip-container">
-              <h2>Pay Slip Generation</h2>
-              <form id="paySlipForm">
-                <div class="form-group">
-                  <label for="empId">Employee ID</label>
-                  <input type="text" id="empId" placeholder="Enter Employee ID" required />
-                </div>
-                <div class="form-group">
-                  <label for="month">Month</label>
-                  <select id="month" required>
-                    <option value="">Select Month</option>
-                    <option value="01">January</option>
-                    <option value="02">February</option>
-                    <option value="03">March</option>
-                    <option value="04">April</option>
-                    <option value="05">May</option>
-                    <option value="06">June</option>
-                    <option value="07">July</option>
-                    <option value="08">August</option>
-                    <option value="09">September</option>
-                    <option value="10">October</option>
-                    <option value="11">November</option>
-                    <option value="12">December</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label for="year">Year</label>
-                  <input type="number" id="year" placeholder="Enter Year" min="2000" max="2100" required />
-                </div>
-                <hr />
-                <div class="form-group">
-                  <label for="totalEarningsInput">Total Earnings</label>
-                  <input type="number" id="totalEarningsInput" placeholder="Enter Total Earnings" required />
-                </div>
-                <div class="button-group">
-                  <button type="button" class="cancel-btn" onclick="clearForm()">Cancel</button>
-                  <button type="submit" class="generate-btn">Generate Pay Slip</button>
-                </div>
-              </form>
-            </div>
+  //   setActive("btn-pay-slip");
+  //   mainContent.innerHTML = `
+  //     <div class="pay-slip-outer" id="paySlipOuter">
+  //       <div class="admin-content-section pay-slip-section" id="pay-slip-admin-section">
+  //         <div class="scrollable-form-container">
+  //           <div class="pay-slip-container">
+  //             <h2>Pay Slip Generation</h2>
+  //             <form id="paySlipForm">
+  //             <div class="form-group" style="position:relative;">
+  //               <label for="paySlipSearchEmployeeName">Search by Name</label>
+  //               <input type="text" id="paySlipSearchEmployeeName" placeholder="Type employee name..." autocomplete="off" />
+  //               <div id="paySlipNameSearchDropdown"></div>
+  //             </div>
+  //               <div class="form-group">
+  //                 <label for="empId">Employee ID</label>
+  //                 <input type="text" id="empId" placeholder="Enter Employee ID" required />
+  //               </div>
+  //               <div class="form-group">
+  //                 <label for="month">Month</label>
+  //                 <select id="month" required>
+  //                   <option value="">Select Month</option>
+  //                   <option value="01">January</option>
+  //                   <option value="02">February</option>
+  //                   <option value="03">March</option>
+  //                   <option value="04">April</option>
+  //                   <option value="05">May</option>
+  //                   <option value="06">June</option>
+  //                   <option value="07">July</option>
+  //                   <option value="08">August</option>
+  //                   <option value="09">September</option>
+  //                   <option value="10">October</option>
+  //                   <option value="11">November</option>
+  //                   <option value="12">December</option>
+  //                 </select>
+  //               </div>
+  //               <div class="form-group">
+  //                 <label for="year">Year</label>
+  //                 <input type="number" id="year" placeholder="Enter Year" min="2000" max="2100" required />
+  //               </div>
+  //               <hr />
+  //               <div class="form-group">
+  //                 <label for="totalEarningsInput">Total Earnings</label>
+  //                 <input type="number" id="totalEarningsInput" placeholder="Enter Total Earnings" required />
+  //               </div>
+  //               <div class="button-group">
+  //                 <button type="button" class="cancel-btn" onclick="clearForm()">Cancel</button>
+  //                 <button type="submit" class="generate-btn">Generate Pay Slip</button>
+  //                   <button type="submit" class="search-btn" style="width:100%;margin-top:10px;">Search</button>
+  //               </div>
+  //             </form>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   `;
+
+  //   // Add styles
+  //   const style = document.createElement("style");
+  //   style.textContent = `
+  //     .pay-slip-container {
+  //       background: linear-gradient(135deg, #c0b8f0, #dfc8f7);
+  //       padding: 30px;
+  //       border-radius: 15px;
+  //       width: 500px;
+  //       margin: 40px auto;
+  //       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  //       color: #333;
+  //     }
+
+  //     .pay-slip-container h2 {
+  //       font-size: 22px;
+  //       margin-bottom: 20px;
+  //       color: #000;
+  //     }
+
+  //     .form-group {
+  //       margin-bottom: 15px;
+  //     }
+
+  //     .form-group label {
+  //       display: block;
+  //       font-weight: 600;
+  //       margin-bottom: 5px;
+  //     }
+
+  //     .form-group input,
+  //     .form-group select {
+  //       width: 100%;
+  //       padding: 10px 12px;
+  //       border: none;
+  //       border-radius: 10px;
+  //       background: #f4f4fc;
+  //       outline: none;
+  //       font-size: 15px;
+  //     }
+
+  //     hr {
+  //       margin: 25px 0;
+  //       border: 0;
+  //       border-top: 1px solid #b3a9e4;
+  //     }
+
+  //     .button-group {
+  //       display: flex;
+  //       justify-content: space-between;
+  //       margin-top: 20px;
+  //     }
+
+  //     .cancel-btn,
+  //     .generate-btn {
+  //       padding: 10px 20px;
+  //       font-weight: bold;
+  //       border: none;
+  //       border-radius: 12px;
+  //       cursor: pointer;
+  //       font-size: 14px;
+  //     }
+
+  //     .cancel-btn {
+  //       background-color: #f3eaff;
+  //       color: #7a42f4;
+  //     }
+
+  //     .generate-btn {
+  //       background: linear-gradient(90deg, #6f42c1, #4dd0a9);
+  //       color: white;
+  //     }
+
+  //     .form-group input[readonly] {
+  //       background-color: #e4e4fa;
+  //       font-weight: bold;
+  //     }
+  //   `;
+  //   document.head.appendChild(style);
+
+  //   window.clearForm = function () {
+  //     document.querySelectorAll("input, select").forEach((el) => (el.value = ""));
+  //   };
+
+  //   // Add form submission handler
+  //   document.getElementById("paySlipForm").addEventListener("submit", function (e) {
+  //     e.preventDefault();
+
+  //     const employeeId = document.getElementById("empId").value.trim();
+  //     const month = document.getElementById("month").value.trim();
+  //     const year = document.getElementById("year").value.trim();
+  //     const totalEarningsRaw = document.getElementById("totalEarningsInput").value.trim();
+  //     const totalEarnings = parseFloat(totalEarningsRaw);
+
+  //     // Strict validation
+  //     if (!employeeId) {
+  //       alert("Employee ID is required.");
+  //       return;
+  //     }
+  //     if (!month || isNaN(Number(month)) || Number(month) < 1 || Number(month) > 12) {
+  //       alert("Valid month (1-12) is required.");
+  //       return;
+  //     }
+  //     if (!year || isNaN(Number(year)) || year.length !== 4) {
+  //       alert("Valid 4-digit year is required.");
+  //       return;
+  //     }
+  //     if (!totalEarningsRaw || isNaN(totalEarnings) || totalEarnings <= 0) {
+  //       alert("Total Earnings must be a positive number.");
+  //       return;
+  //     }
+
+  //     // Compose preview slip (simulate what backend would do, but don't save)
+  //     const slipPreview = {
+  //       employeeId,
+  //       month,
+  //       year,
+  //       totalEarnings
+  //     };
+  //     showPaySlipProceedModal(slipPreview);
+  //   });
+
+  //   function showPaySlipProceedModal(formData) {
+  //     // Remove any existing modal
+  //     const existingModal = document.getElementById('paySlipModal');
+  //     if (existingModal) existingModal.remove();
+  //     const modalHTML = `
+  //       <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
+  //         <div class="modal-content" style="background:#fff;border-radius:12px;max-width:500px;width:95vw;max-height:90vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:2rem 2rem 1.5rem 2rem;position:relative;display:flex;flex-direction:column;align-items:center;">
+  //           <h2 style="margin-bottom:1.5rem;color:#764ba2;">Proceed to Pay Slip Preview</h2>
+  //           <p style="margin-bottom:2rem;font-size:1.1em;text-align:center;color:chocolate;font-style:oblique;">Are you sure you want to generate the pay slip for <b>${formData.employeeId}</b> for <b>${formData.month}/${formData.year}</b>?</p>
+  //           <div style="display:flex;justify-content:flex-end;gap:1rem;width:100%;">
+  //             <button id="cancelPaySlipModalBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Cancel</button>
+  //             <button id="proceedPaySlipModalBtn" class="generate-btn" style="padding:10px 28px;font-size:1.1em;">Proceed</button>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     `;
+  //     document.body.insertAdjacentHTML('beforeend', modalHTML);
+  //     document.getElementById('cancelPaySlipModalBtn').onclick = closePaySlipModal;
+  //     document.getElementById('proceedPaySlipModalBtn').onclick = async function() {
+  //       closePaySlipModal();
+  //       // Fetch/generate pay slip preview from backend (do NOT store in DB)
+  //       try {
+  //         const response = await fetch("/api/payslip/preview", {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+  //           },
+  //           body: JSON.stringify(formData),
+  //         });
+  //         const data = await response.json();
+  //         if (response.ok && data.success && data.payslip) {
+  //           // Step 2: Show pay slip preview modal with editable fields and Save/Cancel
+  //           showPaySlipModal(data.payslip, true);
+  //         } else {
+  //           alert(data.message || "Failed to generate pay slip preview.");
+  //         }
+  //       } catch (err) {
+  //         alert("Error generating pay slip preview.");
+  //       }
+  //     };
+      
+  //   }
+
+  //   function showPaySlipModal(slipData, isPreviewOnly) {
+  //     // Remove any existing modal before inserting a new one
+  //     const existingModal = document.getElementById('paySlipModal');
+  //     if (existingModal) existingModal.remove();
+  //   const paySlipModalHTML = `
+  //       <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
+  //       <div class="modal-content" style="background:#fff;border-radius:12px;max-width:900px;width:98vw;max-height:95vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:0;position:relative;">
+  //         <div id="paySlipPreviewContainer"></div>
+  //         <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
+  //           <button id="cancelPaySlipModalBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Cancel</button>
+  //           <button id="savePaySlipModalBtn" class="generate-btn" style="padding:10px 28px;font-size:1.1em;">Save</button>
+  //           ${slipData.slipId ? `<a href="/api/payslip/download/${slipData.slipId}" target="_blank" class="download-btn" style="padding:10px 28px;font-size:1.1em;background:#43cea2;color:#fff;border:none;border-radius:6px;text-decoration:none;">Download PDF</a>` : ''}
+  //         </div>
+  //       </div>
+  //     </div>
+  //   `;
+  //   document.body.insertAdjacentHTML('beforeend', paySlipModalHTML);
+  //     // Render the pay slip preview using slipData
+  //     const container = document.getElementById('paySlipPreviewContainer');
+  //     if (!container) return;
+  //     container.innerHTML = renderPaySlipHTML(slipData, isPreviewOnly);
+  //     // Add swipe/scroll hint for mobile
+  //     if (window.innerWidth <= 600) {
+  //       const hint = document.createElement('div');
+  //       hint.className = 'swipe-hint';
+  //       hint.innerHTML = '<span class="swipe-icon"></span> Swipe to see full pay slip';
+  //       container.parentNode.appendChild(hint);
+  //     }
+  //     // Attach save handler only if not already attached
+  //     const saveBtn = document.getElementById('savePaySlipModalBtn');
+  //     saveBtn.onclick = async function() {
+  //       // Before sending, update slipData with edited values
+  //       if (isPreviewOnly) {
+  //         const totalDedInput = document.getElementById('editTotalDeductions');
+  //         const netPayInput = document.getElementById('editNetPay');
+  //         if (totalDedInput && !isNaN(+totalDedInput.value)) {
+  //           slipData.deductions = slipData.deductions || {};
+  //           slipData.deductions.totalDeductions = +totalDedInput.value;
+  //         }
+  //         if (netPayInput && !isNaN(+netPayInput.value)) {
+  //           slipData.netPay = +netPayInput.value;
+  //         }
+  //       }
+  //       // Now send slipData to backend as before
+  //       if (!isPreviewOnly) {
+  //         closePaySlipModal();
+  //         alert('Pay Slip saved successfully!');
+  //         clearForm();
+  //         return;
+  //       }
+  //       // Actually save to backend now
+  //       try {
+  //         const response = await fetch("/api/payslip/generate", {
+  //           method: "POST",
+  //           headers: {
+  //             "Content-Type": "application/json",
+  //             Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
+  //           },
+  //           body: JSON.stringify(slipData),
+  //         });
+  //         let data = {};
+  //         try { data = await response.json(); } catch (err) {}
+  //         if (response.ok && data.payslip) {
+  //           // Re-render modal with full payslip data from backend
+  //           closePaySlipModal();
+  //           showPaySlipModal(data.payslip, false); // Not preview mode, disables save
+  //         } else {
+  //           let msg = data.message || "Failed to save pay slip";
+  //           if (data.error) msg += `\nDetails: ${data.error}`;
+  //           alert(msg);
+  //         }
+  //       } catch (error) {
+  //         alert("An error occurred. Please try again.\n" + (error.message || error));
+  //       }
+  //     };
+  //     // In showPaySlipModal, after rendering, if isPreviewOnly is false, hide the Save button
+  //     if (!isPreviewOnly) {
+  //       const saveBtn = document.getElementById('savePaySlipModalBtn');
+  //       if (saveBtn) saveBtn.style.display = 'none';
+  //     }
+  //     document.getElementById('cancelPaySlipModalBtn').onclick = closePaySlipModal;
+  //   }
+  //   function closePaySlipModal() {
+  //     const modal = document.getElementById('paySlipModal');
+  //     if (modal) modal.remove();
+  //   }
+
+  //   setLogoutListener();
+  //   injectProfileSidebar();
+  // }
+
+  function loadPaySlipAdmin() {
+  if (!isAdminRole && !isHRRole) {
+    alert("Access denied. Only administrators and HR personnel can generate pay slips.");
+    return;
+  }
+
+  setActive("btn-pay-slip");
+  mainContent.innerHTML = `
+    <div class="pay-slip-outer" id="paySlipOuter">
+      <div class="admin-content-section pay-slip-section" id="pay-slip-admin-section">
+        <div class="scrollable-form-container">
+          <div class="pay-slip-container">
+            <h2>Pay Slip Generation</h2>
+            <form id="paySlipForm" autocomplete="off">
+              <div class="form-group" style="position:relative;">
+                <label for="paySlipSearchEmployeeName">Search by Name</label>
+                <input type="text" id="paySlipSearchEmployeeName" placeholder="Type employee name..." autocomplete="off" />
+                <div id="paySlipNameSearchDropdown"></div>
+              </div>
+              <div class="form-group">
+                <label for="empId">Employee ID</label>
+                <input type="text" id="empId" placeholder="Enter Employee ID" required />
+              </div>
+              <div class="form-group">
+                <label for="month">Month</label>
+                <select id="month" required>
+                  <option value="">Select Month</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="year">Year</label>
+                <input type="number" id="year" placeholder="Enter Year" min="2000" max="2100" required />
+              </div>
+              <hr />
+              <div class="form-group">
+                <label for="totalEarningsInput">Total Earnings</label>
+                <input type="number" id="totalEarningsInput" placeholder="Enter Total Earnings" required />
+              </div>
+              <div class="button-group">
+                <button type="button" class="cancel-btn" onclick="clearForm()">Cancel</button>
+                <button type="submit" class="generate-btn">Generate Pay Slip</button>
+                <button type="button" id="searchPaySlipBtn" class="search-btn" style="width:100%;margin-top:10px;">Search</button>
+              </div>
+            </form>
+            <div id="paySlipAdminResult" style="margin-top:2rem;display:none;"></div>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
 
-    // Add styles
-    const style = document.createElement("style");
-    style.textContent = `
-      .pay-slip-container {
-        background: linear-gradient(135deg, #c0b8f0, #dfc8f7);
-        padding: 30px;
-        border-radius: 15px;
-        width: 500px;
-        margin: 40px auto;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-        color: #333;
-      }
+  // Add styles (same as before)
+  const style = document.createElement("style");
+  style.textContent = `
+    .pay-slip-container {
+      background: linear-gradient(135deg, #c0b8f0, #dfc8f7);
+      padding: 30px;
+      border-radius: 15px;
+      width: 500px;
+      margin: 40px auto;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      color: #333;
+    }
+    .pay-slip-container h2 {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #000;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 10px;
+      background: #f4f4fc;
+      outline: none;
+      font-size: 15px;
+    }
+    hr {
+      margin: 25px 0;
+      border: 0;
+      border-top: 1px solid #b3a9e4;
+    }
+    .button-group {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .cancel-btn,
+    .generate-btn {
+      padding: 10px 20px;
+      font-weight: bold;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .cancel-btn {
+      background-color: #f3eaff;
+      color: #7a42f4;
+    }
+    .generate-btn {
+      background: linear-gradient(90deg, #6f42c1, #4dd0a9);
+      color: white;
+    }
+    .form-group input[readonly] {
+      background-color: #e4e4fa;
+      font-weight: bold;
+    }
+  `;
+  document.head.appendChild(style);
 
-      .pay-slip-container h2 {
-        font-size: 22px;
-        margin-bottom: 20px;
-        color: #000;
-      }
+  window.clearForm = function () {
+    document.querySelectorAll("input, select").forEach((el) => (el.value = ""));
+  };
 
-      .form-group {
-        margin-bottom: 15px;
-      }
+    const totalEarningsInput = document.getElementById('totalEarnings');
+  const totalDeductionsInput = document.getElementById('totalDeductions');
+  const netPayInput = document.getElementById('netPay');
 
-      .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 5px;
-      }
+  function updateNetPay() {
+    const earnings = parseFloat(totalEarningsInput.value) || 0;
+    const deductions = parseFloat(totalDeductionsInput.value) || 0;
+    const netPay = earnings - deductions;
+    netPayInput.value = netPay.toFixed(2);
+  }
 
-      .form-group input,
-      .form-group select {
-        width: 100%;
-        padding: 10px 12px;
-        border: none;
-        border-radius: 10px;
-        background: #f4f4fc;
-        outline: none;
-        font-size: 15px;
-      }
+  if (totalDeductionsInput) {
+    totalDeductionsInput.addEventListener('input', updateNetPay);
+  }
+  if (totalEarningsInput) {
+    totalEarningsInput.addEventListener('input', updateNetPay);
+  }
+  // --- Search by Name Autocomplete ---
+  (function attachPaySlipNameSearch() {
+    const nameInput = document.getElementById("paySlipSearchEmployeeName");
+    const idInput = document.getElementById("empId");
+    const dropdown = document.getElementById("paySlipNameSearchDropdown");
+    if (!nameInput || !idInput || !dropdown) return;
 
-      hr {
-        margin: 25px 0;
-        border: 0;
-        border-top: 1px solid #b3a9e4;
-      }
-
-      .button-group {
-        display: flex;
-        justify-content: space-between;
-        margin-top: 20px;
-      }
-
-      .cancel-btn,
-      .generate-btn {
-        padding: 10px 20px;
-        font-weight: bold;
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        font-size: 14px;
-      }
-
-      .cancel-btn {
-        background-color: #f3eaff;
-        color: #7a42f4;
-      }
-
-      .generate-btn {
-        background: linear-gradient(90deg, #6f42c1, #4dd0a9);
-        color: white;
-      }
-
-      .form-group input[readonly] {
-        background-color: #e4e4fa;
-        font-weight: bold;
-      }
-    `;
-    document.head.appendChild(style);
-
-    window.clearForm = function () {
-      document.querySelectorAll("input, select").forEach((el) => (el.value = ""));
-    };
-
-    // Add form submission handler
-    document.getElementById("paySlipForm").addEventListener("submit", function (e) {
-      e.preventDefault();
-
-      const employeeId = document.getElementById("empId").value.trim();
-      const month = document.getElementById("month").value.trim();
-      const year = document.getElementById("year").value.trim();
-      const totalEarningsRaw = document.getElementById("totalEarningsInput").value.trim();
-      const totalEarnings = parseFloat(totalEarningsRaw);
-
-      // Strict validation
-      if (!employeeId) {
-        alert("Employee ID is required.");
+    let searchCache = [];
+    async function fetchEmployeesForSearch() {
+      if (searchCache.length > 0) return;
+      try {
+        const token = localStorage.getItem("jwtToken");
+        const res = await fetch("/api/employees", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.employees)) {
+          searchCache = data.employees.map(e => ({
+            id: e.employeeId,
+            name: `${e.firstName || ''} ${e.lastName || ''}`.trim()
+          }));
+        }
+      } catch (err) {}
+    }
+    nameInput.addEventListener("focus", fetchEmployeesForSearch);
+    nameInput.addEventListener("keyup", function () {
+      const term = nameInput.value.toLowerCase().trim();
+      if (!term) {
+        dropdown.innerHTML = "";
         return;
       }
-      if (!month || isNaN(Number(month)) || Number(month) < 1 || Number(month) > 12) {
-        alert("Valid month (1-12) is required.");
-        return;
-      }
-      if (!year || isNaN(Number(year)) || year.length !== 4) {
-        alert("Valid 4-digit year is required.");
-        return;
-      }
-      if (!totalEarningsRaw || isNaN(totalEarnings) || totalEarnings <= 0) {
-        alert("Total Earnings must be a positive number.");
-        return;
-      }
-
-      // Compose preview slip (simulate what backend would do, but don't save)
-      const slipPreview = {
-        employeeId,
-        month,
-        year,
-        totalEarnings
-      };
-      showPaySlipProceedModal(slipPreview);
+      const filtered = searchCache.filter(e =>
+        e.name.toLowerCase().includes(term)
+      );
+      dropdown.innerHTML = filtered
+        .map(
+          (e) => `
+            <div data-id="${e.id}" data-name="${e.name}" style="padding:6px 12px;cursor:pointer;">
+              <span style="color:#a020f0;font-weight:600;">${e.name}</span>
+              <span style="color:#222;font-weight:bold;"> (${e.id})</span>
+            </div>
+          `
+        )
+        .join("");
     });
+    dropdown.addEventListener("click", function (e) {
+      const targetDiv = e.target.closest('div[data-id]');
+      if (targetDiv) {
+        nameInput.value = targetDiv.dataset.name;
+        idInput.value = targetDiv.dataset.id;
+        dropdown.innerHTML = "";
+      }
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== nameInput) {
+        dropdown.innerHTML = "";
+      }
+    });
+  })();
 
-    function showPaySlipProceedModal(formData) {
-      // Remove any existing modal
-      const existingModal = document.getElementById('paySlipModal');
+  // --- Search Button Handler ---
+  document.getElementById("searchPaySlipBtn").addEventListener("click", async function (e) {
+    e.preventDefault();
+    const empId = document.getElementById("empId").value.trim();
+    let month = document.getElementById("month").value.trim();
+    let year = document.getElementById("year").value.trim();
+    const resultDiv = document.getElementById("paySlipAdminResult");
+
+    if (!empId) {
+      resultDiv.style.display = "block";
+      resultDiv.innerHTML = `<div class='error' style='color:#dc3545;font-weight:bold;'>Please select an employee from the dropdown or enter Employee ID.</div>`;
+      return;
+    }
+    if (month) month = parseInt(month, 10);
+    if (year) year = parseInt(year, 10);
+
+    let url = `/api/payslip?employeeId=${encodeURIComponent(empId)}`;
+    if (month) url += `&month=${encodeURIComponent(month)}`;
+    if (year) url += `&year=${encodeURIComponent(year)}`;
+
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = '<div class="loading">Loading pay slip...</div>';
+
+    try {
+      const token = localStorage.getItem("jwtToken");
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+
+      if (res.ok && data && data.employeeId) {
+        let slip = data;
+        // Remove any existing modal
+        const existingModal = document.getElementById('paySlipModal');
+        if (existingModal) existingModal.remove();
+
+        const paySlipModalHTML = `
+          <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
+            <div class="modal-content" style="background:#fff;border-radius:12px;max-width:900px;width:98vw;max-height:95vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:0;position:relative;">
+              <div id="paySlipPreviewContainer">${renderPaySlipHTML(slip)}</div>
+              <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
+                <button id="clearPaySlipViewBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Clear</button>
+                <button class="search-btn" id="sendPaySlipViewBtn">Send</button>
+              </div>
+              <div id="paySlipSendStatus" style="margin-top:1rem;"></div>
+            </div>
+          </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', paySlipModalHTML);
+
+        document.getElementById("clearPaySlipViewBtn").onclick = function() {
+          const modal = document.getElementById('paySlipModal');
+          if (modal) modal.remove();
+        };
+
+        document.getElementById("sendPaySlipViewBtn").onclick = async function() {
+          const statusDiv = document.getElementById("paySlipSendStatus");
+          statusDiv.innerHTML = '<span style="color:#764ba2;font-weight:bold;">Sending pay slip notification...</span>';
+          try {
+            const token = localStorage.getItem("jwtToken");
+            if (!empId || !month || !year) {
+              statusDiv.innerHTML = `<span style='color:#dc3545;font-weight:bold;'>Error sending pay slip notification: employeeId, month, and year are required.</span>`;
+              return;
+            }
+            const res = await fetch(`/api/payslip/send-notification`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                employeeId: empId,
+                month: month,
+                year: year,
+                message: "Your pay slip has been generated. Now click the download to generate the pay slip. Thank You."
+              })
+            });
+            const data = await res.json();
+            if (res.ok) {
+              statusDiv.innerHTML = '<span style="color:#28a745;font-weight:bold;">Pay slip notification sent successfully.</span>';
+            } else {
+              statusDiv.innerHTML = `<span style="color:#dc3545;font-weight:bold;">Error sending pay slip notification: ${data.message}</span>`;
+            }
+          } catch (err) {
+            statusDiv.innerHTML = '<span style="color:#dc3545;font-weight:bold;">An error occurred while sending the notification.</span>';
+          }
+        };
+
+      } else {
+        resultDiv.innerHTML = `<div class='error'>${data.error || 'Pay slip not found.'}</div>`;
+      }
+    } catch (err) {
+      resultDiv.innerHTML = '<div class="error">An error occurred. Please try again.</div>';
+    }
+  });
+
+  // --- Generate Pay Slip Handler (existing functionality) ---
+  document.getElementById("paySlipForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const employeeId = document.getElementById("empId").value.trim();
+    const month = document.getElementById("month").value.trim();
+    const year = document.getElementById("year").value.trim();
+    const totalEarningsRaw = document.getElementById("totalEarningsInput").value.trim();
+    const totalEarnings = parseFloat(totalEarningsRaw);
+
+    // Strict validation
+    if (!employeeId) {
+      alert("Employee ID is required.");
+      return;
+    }
+    if (!month || isNaN(Number(month)) || Number(month) < 1 || Number(month) > 12) {
+      alert("Valid month (1-12) is required.");
+      return;
+    }
+    if (!year || isNaN(Number(year)) || year.length !== 4) {
+      alert("Valid 4-digit year is required.");
+      return;
+    }
+    if (!totalEarningsRaw || isNaN(totalEarnings) || totalEarnings <= 0) {
+      alert("Total Earnings must be a positive number.");
+      return;
+    }
+
+    // Compose preview slip (simulate what backend would do, but don't save)
+    const slipPreview = {
+      employeeId,
+      month,
+      year,
+      totalEarnings
+    };
+    showPaySlipProceedModal(slipPreview);
+  });
+
+  // --- Modal functions (existing) ---
+  function showPaySlipProceedModal(formData) {
+    // ... (keep your existing modal code here)
+    // unchanged from your current implementation
+    const existingModal = document.getElementById('paySlipModal');
       if (existingModal) existingModal.remove();
       const modalHTML = `
         <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
@@ -2548,11 +3245,11 @@ document.addEventListener("DOMContentLoaded", () => {
           alert("Error generating pay slip preview.");
         }
       };
-    }
-
-    function showPaySlipModal(slipData, isPreviewOnly) {
-      // Remove any existing modal before inserting a new one
-      const existingModal = document.getElementById('paySlipModal');
+  }
+  function showPaySlipModal(slipData, isPreviewOnly) {
+    // ... (keep your existing modal code here)
+    // unchanged from your current implementation
+    const existingModal = document.getElementById('paySlipModal');
       if (existingModal) existingModal.remove();
     const paySlipModalHTML = `
         <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
@@ -2571,6 +3268,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const container = document.getElementById('paySlipPreviewContainer');
       if (!container) return;
       container.innerHTML = renderPaySlipHTML(slipData, isPreviewOnly);
+      if (isPreviewOnly) {
+  const totalEarnings = slipData.totalEarnings || (slipData.earnings && slipData.earnings.totalEarnings) || 0;
+  const totalDedInput = document.getElementById('editTotalDeductions');
+  const netPayInput = document.getElementById('editNetPay');
+  function updateNetPayField() {
+    const deductions = parseFloat(totalDedInput.value) || 0;
+    const netPay = parseFloat(totalEarnings) - deductions;
+    if (netPayInput) netPayInput.value = netPay.toFixed(2);
+  }
+  if (totalDedInput && netPayInput) {
+    totalDedInput.addEventListener('input', updateNetPayField);
+    // Optionally, update once on load
+    updateNetPayField();
+  }
+}
       // Add swipe/scroll hint for mobile
       if (window.innerWidth <= 600) {
         const hint = document.createElement('div');
@@ -2631,16 +3343,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (saveBtn) saveBtn.style.display = 'none';
       }
       document.getElementById('cancelPaySlipModalBtn').onclick = closePaySlipModal;
-    }
-    function closePaySlipModal() {
-      const modal = document.getElementById('paySlipModal');
-      if (modal) modal.remove();
-    }
-
-    setLogoutListener();
-    injectProfileSidebar();
+  }
+  function closePaySlipModal() {
+    const modal = document.getElementById('paySlipModal');
+    if (modal) modal.remove();
   }
 
+  setLogoutListener();
+  injectProfileSidebar();
+}
   async function loadAttendance() {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -7376,7 +8087,7 @@ dropdown.addEventListener("click", function (e) {
               <div id="paySlipPreviewContainer">${renderPaySlipHTML(slip)}</div>
               <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
               <button id="clearPaySlipViewBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Clear</button>
-              <button id="sendPaySlipViewBtn" class="generate-btn" style="padding:10px 28px;font-size:1.1em;">Send</button>
+               <button class="search-btn">Send</button>
              
             </div>
             <div id="paySlipSendStatus" style="margin-top:1rem;"></div>
@@ -7485,7 +8196,8 @@ async function fetchMyPayslips() {
       const status = p.status === 'new'
         ? '<span class="status-new">New</span>'
         : '<span class="status-viewed">Viewed</span>';
-      const viewBtn = `<button class="action-btn" ${p.status === 'new' ? '' : 'disabled'}>View</button>`;
+      // Always enable the View button
+      const viewBtn = `<button class="action-btn view-payslip-btn" data-employee-id="${p.employeeId}" data-month="${p.month}" data-year="${p.year}">View</button>`;
       return `<tr>
         <td>${idx + 1}</td>
         <td>${monthYear}</td>
@@ -7494,6 +8206,59 @@ async function fetchMyPayslips() {
         <td>${viewBtn}</td>
       </tr>`;
     }).join('');
+
+    // Attach event listeners to all view buttons
+    tbody.querySelectorAll('.view-payslip-btn').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        const employeeId = this.getAttribute('data-employee-id');
+        const month = this.getAttribute('data-month');
+        const year = this.getAttribute('data-year');
+        // Fetch payslip data
+        const token = localStorage.getItem('jwtToken');
+        try {
+          const res = await fetch(`/api/payslip?employeeId=${encodeURIComponent(employeeId)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const slip = await res.json();
+          if (res.ok && slip && slip.employeeId) {
+            // Show modal
+            const existingModal = document.getElementById('paySlipModal');
+            if (existingModal) existingModal.remove();
+            const paySlipModalHTML = `
+              <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
+                <div class="modal-content" style="background:#fff;border-radius:12px;max-width:900px;width:98vw;max-height:95vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:0;position:relative;">
+                  <div id="paySlipPreviewContainer">${renderPaySlipHTML(slip)}</div>
+                  <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
+                    <button id="closePaySlipModalBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Close</button>
+                  </div>
+                </div>
+              </div>`;
+            document.body.insertAdjacentHTML('beforeend', paySlipModalHTML);
+            document.getElementById('closePaySlipModalBtn').onclick = function() {
+              const modal = document.getElementById('paySlipModal');
+              if (modal) modal.remove();
+            };
+            // Mark as viewed in backend if status was 'new'
+            if (this.parentElement.previousElementSibling.querySelector('.status-new')) {
+              await fetch('/api/payslip/mark-viewed', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ employeeId, month, year })
+              });
+              // Update status visually
+              this.parentElement.previousElementSibling.innerHTML = '<span class="status-viewed">Viewed</span>';
+            }
+          } else {
+            alert(slip.error || 'Failed to load payslip.');
+          }
+        } catch (err) {
+          alert('Error loading payslip.');
+        }
+      });
+    });
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2em;color:#aaa;">Error loading payslips.</td></tr>';
   }

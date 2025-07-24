@@ -560,9 +560,9 @@ button[type="submit"]:hover,
 .pay-slip-container .button-group button {
   flex: 1 1 0;
   min-width: 120px;
-  max-width: 220px;
-  font-size: 1.1rem;
-  padding: 0.9rem 0;
+  max-width: 180px;
+  font-size: 0.8rem;
+  padding: 0.7rem 0;
   border-radius: 10px;
   margin: 0;
 }
@@ -2752,7 +2752,10 @@ flex-direction: column;
   padding: 18px 32px 18px 0;
   width: 100%;
   box-sizing: border-box;
+
 }
+
+
 @media (max-width: 900px) {
   #paySlipModal .modal-content {
     max-width: 99vw;
@@ -2839,8 +2842,8 @@ flex-direction: column;
     position: relative;
   }
   #paySlipPreviewContainer .payslip-container {
-    min-width: 650px !important;
-    width: 650px !important;
+    min-width: 250px !important;
+    width: 250px !important;
     border-radius: 0 !important;
     padding: 0 !important;
     box-shadow: none !important;
@@ -2891,11 +2894,29 @@ flex-direction: column;
   #paySlipModal .modal-content > div[style*="display:flex;justify-content:flex-end"] {
     padding: 12px 4vw 12px 0 !important;
   }
-  #paySlipModal .cancel-btn, #paySlipModal .generate-btn, #paySlipModal .save-btn {
+  #paySlipModal , #paySlipModal .generate-btn, #paySlipModal .save-btn {
     font-size: 1em !important;
     padding: 10px 10px !important;
     min-width: 80px !important;
+     background: linear-gradient(90deg, #764ba2 0%, #43cea2 100%);
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  padding: 0.75rem 2rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.3s ease;
+
+    
   }
+   #paySlipModal .cancel-btn{
+     font-size: 1em !important;
+    padding: 10px 10px !important;
+    min-width: 80px !important;
+        background: linear-gradient(90deg, #ff7eb3 0%, #ff758c 100%);
+    color: #fff;
+    transform: translateY(-2px) scale(1.04);
+   }
   /* Add a clear swipe/scroll hint with icon and text */
   #paySlipPreviewContainer::after {
     content: '';
@@ -3083,8 +3104,8 @@ flex-direction: column;
 }
 
 .pay-slip-schedule-container {
-  max-width: 1100px;
-  width: 98vw;
+  max-width: 900px;
+  width: 88vw;
   margin: 40px auto 0 auto;
   padding: 40px 32px 32px 32px;
   background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
@@ -3194,11 +3215,25 @@ flex-direction: column;
   }
 }
 @media (max-width: 600px) {
-  .pay-slip-schedule-container {
+  /* .pay-slip-schedule-container {
     max-width: 100vw;
     width: 100vw;
     padding: 10px 0 10px 0;
     border-radius: 0;
+  }
+  */
+    .pay-slip-schedule-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    width:auto;
+  }
+  .pay-slip-schedule-table {
+    min-width: 400px;
+    width: max-content;
+    display: block;
+    overflow-x: auto;
+    background: #fff;
   }
   .pay-slip-schedule-title {
     font-size: 1.3em;
@@ -3211,5 +3246,21 @@ flex-direction: column;
   .pay-slip-schedule-table .action-btn {
     padding: 8px 10px;
     font-size: 0.98em;
+  }
+}
+
+@media (max-width: 600px) {
+  .payslip-main-box .payslip-table {
+    display: block;
+    overflow-x: auto;
+    min-width: 400px;
+    width: max-content;
+    background: #fff;
+    border-radius: 8px;
+    margin-bottom: 1.2em;
+    -webkit-overflow-scrolling: touch;
+  }
+  .payslip-main-box .payslip-table th, .payslip-main-box .payslip-table td {
+    white-space: nowrap;
   }
 }
