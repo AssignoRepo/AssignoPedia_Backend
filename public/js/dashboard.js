@@ -231,56 +231,164 @@ let mainContent = null;
 
 // Make renderPaySlipHTML globally available
 function renderPaySlipHTML(slip, isPreviewOnly = false) {
+  console.log(slip);
   return `
-    <div class="payslip-container" style="margin:24px auto;">
-      <div class="payslip-header">
-        <img src="images/logo.png" alt="AssignOpedia Logo" class="payslip-logo">
-        <div class="payslip-title-block">
-          <div class="payslip-title">AssignOpedia</div>
-          <div class="payslip-period">Pay slip for the Month of <span>${slip.month}/${slip.year}</span></div>
-        </div>
+  <style>
+    .payslip-main-box {
+      max-width: 800px;
+      margin: 32px auto;
+      border: 2px solid #7c4dbe;
+      border-radius: 6px;
+      background: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      box-shadow: 0 2px 16px rgba(124,77,190,0.08);
+      padding: 0;
+    }
+    .payslip-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 24px 32px 0 32px;
+    }
+    .payslip-header-title {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #2d197c;
+      margin-bottom: 4px;
+    }
+    .payslip-header-logo {
+      height: 60px;
+      margin-left: 16px;
+    }
+    .payslip-period {
+      font-size: 1.1em;
+      color: #222;
+      margin-bottom: 12px;
+      text-align: right;
+    }
+    .payslip-section {
+      margin: 0 32px 24px 32px;
+      border: 1px solid #e0d7f3;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .payslip-section-title {
+      background: #7c4dbe;
+      color: #fff;
+      font-weight: 600;
+      padding: 8px 16px;
+      font-size: 1.08em;
+      border-bottom: 1px solid #e0d7f3;
+    }
+    .payslip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1em;
+    }
+    .payslip-table th, .payslip-table td {
+      border: 1px solid #e0d7f3;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .payslip-table th {
+      background: #f3eaff;
+      color: #2d197c;
+      font-weight: 600;
+    }
+    .payslip-table td {
+      background: #fff;
+    }
+    .payslip-net-row th, .payslip-net-row td {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #2d197c;
+      background: #f3eaff;
+    }
+    .payslip-footer {
+      margin: 24px 32px 24px 32px;
+      font-size: 0.98em;
+      color: #888;
+      text-align: right;
+    }
+    @media (max-width: 900px) {
+      .payslip-main-box, .payslip-section, .payslip-footer, .payslip-header-row {
+        margin: 0;
+        padding: 0 8px;
+      }
+    }
+  </style>
+  <div class="payslip-main-box">
+    <div class="payslip-header-row">
+      <div>
+        <div class="payslip-header-title">Assignopedia Services</div>
+        <div class="payslip-period">Payslip for the Month of <b>${slip.monthName} ${slip.year}</b></div>
       </div>
-      <h2 style="text-align:center;margin:18px 0 10px 0;font-size:1.3em;color:#4b2e83;">Pay Slip</h2>
-      <table class="payslip-table" style="margin-bottom:0;table-layout:fixed;width:100%;word-break:break-word;">
-        <colgroup>
-          <col style="width:23%"><col style="width:17%">
-          <col style="width:23%"><col style="width:17%">
-          <col style="width:23%"><col style="width:17%">
-          <col style="width:23%"><col style="width:17%">
-        </colgroup>
-        <tr>
-          <th>Employee No.</th><td>${slip.employeeId || ''}</td>
-          <th>Designation</th><td>${slip.designation || ''}</td>
-          <th>Posting/Location</th><td>${slip.address || ''}</td>
-          <th>Employee PAN No</th><td style="white-space:normal;">${slip.panNo || ''}</td>
-        </tr>
-        <tr>
-          <th>Employee Name</th><td>${slip.name || ''}</td>
-          <th>Date of Joining</th><td>${slip.doj ? new Date(slip.doj).toLocaleDateString() : ''}</td>
-          <td colspan="4"></td>
-        </tr>
-      </table>
-      <table class="payslip-table" style="margin-top:0;"><tr><th>CTC/month</th><td colspan="7">₹${slip.ctc||'0.00'}</td></tr></table>
-      <div class="payslip-section-title">Attendance</div>
+      <img src="images/logo.png" alt="Logo" class="payslip-header-logo" />
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Employee Details</div>
       <table class="payslip-table">
-        <tr><th>Working Days</th><td>${slip.attendance?.workingDays||slip.attendance?.totalDays||''}</td><th>Weekend Days</th><td>${slip.attendance?.weekendDays||''}</td><th>CL</th><td>${slip.attendance?.cl||''}</td><th>SL</th><td>${slip.attendance?.sl||''}</td></tr>
-        <tr><th>PL</th><td>${slip.attendance?.pl||''}</td><th>NPL</th><td>${slip.attendance?.npl||''}</td><th>DNPL</th><td>${slip.attendance?.dnpl||''}</td><th>Unpaid Leave</th><td>${slip.attendance?.unpaidLeave||''}</td></tr>
-        <tr><th>Total Days</th><td>${slip.attendance?.totalDays||''}</td><th colspan="6"></th></tr>
+        <tr><th>Employee Name</th><td>${slip.employeeName || ''}</td><th>Employee ID</th><td>${slip.employeeId || ''}</td></tr>
+        <tr><th>Department</th><td>${slip.department || ''}</td><th>Designation</th><td>${slip.designation || ''}</td></tr>
+        <tr><th>Employee Address</th><td colspan="3">${slip.location || ''}</td></tr>
+        <tr><th>Date of Joining</th><td>${slip.doj || ''}</td><td colspan="2"></td></tr>
       </table>
-      <div class="payslip-section-title">Monthly Earnings</div>
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Attendance Summary</div>
       <table class="payslip-table">
-        <tr><th>Basic</th><td>${slip.earnings?.basic?.toFixed(2)||'0.00'}</td><th>HRA</th><td>${slip.earnings?.hra?.toFixed(2)||'0.00'}</td><th>Special Allowance</th><td>${slip.earnings?.specialAllowance?.toFixed(2)||'0.00'}</td><th>Total Earnings</th><td>${slip.earnings?.totalEarnings?.toFixed(2)||'0.00'}</td></tr>
+        <tr><th>Total Present</th><th>Total Absent</th><th>Paid Leaves</th><th>NPL</th><th>DNPL</th></tr>
+        <tr>
+          <td>${slip.workingDays || ''}</td>
+          <td>${slip.absentDays || ''}</td>
+          <td>${slip.paidLeaves || ''}</td>
+          <td>${slip.nplCount || ''}</td>
+          <td>${slip.dnplCount || ''}</td>
+        </tr>
       </table>
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Earnings</div>
+      <table class="payslip-table">
+        <tr><th>Description</th><th>Amount (INR)</th></tr>
+        <tr><td>Basic Salary</td><td>${slip.basic || '0.00'}</td></tr>
+        <tr><td>HRA</td><td>${slip.hra || '0.00'}</td></tr>
+        <tr><td>Special Allowance</td><td>${slip.specialAllowance || '0.00'}</td></tr>
+        <tr><th>Total Earnings</th><th>${slip.totalEarnings || '0.00'}</th></tr>
+      </table>
+    </div>
+    <div class="payslip-section">
       <div class="payslip-section-title">Deductions</div>
       <table class="payslip-table">
-        <tr><th>EPF</th><td>0.00</td><th>P. Tax</th><td>0.00</td><th>Advance</th><td>0.00</td><th>Total Deductions</th><td>${isPreviewOnly ? `<input type="number" id="editTotalDeductions" value="${slip.deductions?.totalDeductions?.toFixed(2)||'0.00'}" style="width:90px;" />` : (slip.deductions?.totalDeductions?.toFixed(2)||'0.00')}</td></tr>
+        <tr><th>Description</th><th>Amount (INR)</th></tr>
+        <tr><td>Provident Fund (PF)</td><td>${slip.epf || '0.00'}</td></tr>
+        <tr><td>ESI</td><td>${slip.esi || '0.00'}</td></tr>
+        <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
+        <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
+        <tr><th>Total Deductions</th>
+          <th>
+            ${isPreviewOnly
+              ? `<input id="editTotalDeductions" type="number" value="${slip.totalDeductions || '0.00'}" style="width:120px;">`
+              : (slip.totalDeductions || '0.00')}
+          </th></tr>
       </table>
-      <table class="payslip-table" style="margin-top:0;">
-        <tr><th>Net Pay: Rs.</th><td colspan="7">${isPreviewOnly ? `<input type="number" id="editNetPay" value="${slip.netPay?.toFixed(2)||'0.00'}" style="width:130px;" />` : (slip.netPay?.toFixed(2)||'0.00')}</td></tr>
-        <tr><td colspan="8" style="font-size:0.98em;color:#555;">Net Salary Credited to Your, Bank Account Number</td></tr>
-      </table>
-      <div class="payslip-footer">Rupees <span>${slip.netPayWords||''}</span><br><span style="font-size:0.97em;">This is computer generated print, does not require any signature.</span><div class="payslip-signature">AssignOpedia HR/Admin</div></div>
     </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Net Salary</div>
+      <table class="payslip-table">
+        <tr class="payslip-net-row"><th>Net Pay (INR)</th><td>
+            ${isPreviewOnly
+              ? `<input id="editNetPay" type="number" value="${slip.netPay || '0.00'}" style="width:120px;">`
+              : (slip.netPay || '0.00')}
+          </td></tr>
+        <tr><th>Net Pay (in words)</th><td>${slip.netPayWords || ''}</td></tr>
+      </table>
+    </div>
+    <div class="payslip-footer">
+      This is a system generated payslip and does not require signature.
+    </div>
+  </div>
   `;
 }
 
@@ -677,6 +785,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add employee-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
+    document.getElementById('btn-pay-slip-schedule').onclick = loadPaySlipSchedule;
     
     // Add WFH Request button
     if (!document.getElementById("btn-wfh")) {
@@ -5672,13 +5781,13 @@ async function loadRecentNotices() {
         let downloadBtn = '';
         if (notice.payslipInfo && notice.payslipInfo.employeeId && notice.payslipInfo.month && notice.payslipInfo.year) {
           const { employeeId, month, year } = notice.payslipInfo;
-          downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
+          //downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
         } else if (notice.message && notice.message.toLowerCase().includes('pay slip')) {
           const today = new Date();
           const employeeId = currentEmployee.employeeId;
           const month = (today.getMonth() + 1).toString().padStart(2, '0');
           const year = today.getFullYear();
-          downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
+         // downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
         }
         return `
           <div class="notice-item ${!notice.readBy.includes(currentEmployee.employeeId) ? "unread" : ""}" data-notice-id="${notice._id}">
@@ -5702,14 +5811,14 @@ async function loadRecentNotices() {
     recentNoticesList.innerHTML = noticesHtml;
 
     // Add download button click handler
-    document.querySelectorAll('button[data-employee-id]').forEach(button => {
-      button.addEventListener('click', async () => {
-        const employeeId = button.getAttribute('data-employee-id');
-        const month = button.getAttribute('data-month');
-        const year = button.getAttribute('data-year');
-        await downloadPayslip(employeeId, month, year);
-      });
-    });
+    // document.querySelectorAll('button[data-employee-id]').forEach(button => {
+    //   button.addEventListener('click', async () => {
+    //     const employeeId = button.getAttribute('data-employee-id');
+    //     const month = button.getAttribute('data-month');
+    //     const year = button.getAttribute('data-year');
+    //    downloadPayslip(employeeId, month, year);
+    //   });
+    // });
   } catch (err) {
     recentNoticesList.innerHTML = '<div class="no-notices">Error loading notices</div>';
   }
@@ -5743,13 +5852,13 @@ async function loadNotificationsList() {
         let downloadBtn = '';
         if (notice.payslipInfo && notice.payslipInfo.employeeId && notice.payslipInfo.month && notice.payslipInfo.year) {
           const { employeeId, month, year } = notice.payslipInfo;
-          downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
+          //downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;" onclick="downloadPayslip(this)>Download Pay Slip</button>`;
         } else if (notice.message && notice.message.toLowerCase().includes('pay slip')) {
           const today = new Date();
           const employeeId = currentEmployee.employeeId;
           const month = (today.getMonth() + 1).toString().padStart(2, '0');
           const year = today.getFullYear();
-          downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;">Download Pay Slip</button>`;
+         // downloadBtn = `<button data-employee-id="${encodeURIComponent(employeeId)}" data-month="${encodeURIComponent(month)}" data-year="${encodeURIComponent(year)}" style="display:inline-block;margin-top:8px;padding:7px 18px;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.98em;border:none;cursor:pointer;" onclick="downloadPayslip(this)">Download Pay Slip</button>`;
         }
         return `
           <div class="notice-item ${isUnread ? "unread" : ""}" data-notice-id="${notice._id}">
@@ -5773,14 +5882,14 @@ async function loadNotificationsList() {
     notificationsList.innerHTML = notificationsHtml;
 
     // Add download button click handler
-    document.querySelectorAll('button[data-employee-id]').forEach(button => {
-      button.addEventListener('click', async () => {
-        const employeeId = button.getAttribute('data-employee-id');
-        const month = button.getAttribute('data-month');
-        const year = button.getAttribute('data-year');
-        await downloadPayslip(employeeId, month, year);
-      });
-    });
+    // document.querySelectorAll('button[data-employee-id]').forEach(button => {
+    //   button.addEventListener('click', async () => {
+    //     const employeeId = button.getAttribute('data-employee-id');
+    //     const month = button.getAttribute('data-month');
+    //     const year = button.getAttribute('data-year');
+    //   downloadPayslip(employeeId, month, year);
+    //   });
+    // });
 
     // Add click handlers to mark as read
     document.querySelectorAll(".notice-item").forEach((item) => {
@@ -5799,32 +5908,33 @@ async function loadNotificationsList() {
 }
 
 // --- Helper function to handle payslip download ---
-async function downloadPayslip(employeeId, month, year) {
+//  async function downloadPayslip(employeeId, month, year) {
+//   const token = localStorage.getItem("jwtToken");
+//   const url = `/api/download-payslip`
+//     + `?employeeId=${encodeURIComponent(employeeId)}`
+//     + `&month=${encodeURIComponent(month)}`
+//     + `&year=${encodeURIComponent(year)}`
+//     + `&token=${encodeURIComponent(token)}`;
+//   window.open(url, "_blank");
+// }
+
+function downloadPayslip(employeeId, month, year) {
   const token = localStorage.getItem("jwtToken");
-  try {
-    const response = await fetch(`/api/download-payslip?employeeId=${encodeURIComponent(employeeId)}&month=${encodeURIComponent(month)}&year=${encodeURIComponent(year)}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  const url = `/api/download-payslip?employeeId=${employeeId}&month=${month}&year=${year}&token=${token}`;
 
-    if (!response.ok) throw new Error('Download failed');
-
-    const blob = await response.blob();
-    console.log(blob);
-    const url = window.URL.createObjectURL(blob);
-    console.log(url);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Payslip-${employeeId}-${month}-${year}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error downloading PDF:', error);
-    alert('Failed to download the payslip. Please try again.');
-  }
+  // Create hidden link
+  // const link = document.createElement("a");
+  // link.href = url;
+  // link.target = "_blank";  // Open in new tab (optional)
+  // link.download = `Payslip_${employeeId}_${month}_${year}.pdf`;
+  // document.body.appendChild(link);
+  // link.click();
+  // document.body.removeChild(link);
+  window.open(url,"_blank");
 }
+
+
+
 
 // --- Mark notification as read in backend ---
 async function markNotificationAsRead(noticeId) {
@@ -7154,46 +7264,72 @@ function loadPaySlipView() {
     </div>
   `;
 
-  // Attach employee name search logic
+  // Attach a search function to the name input
   (function attachPaySlipNameSearch() {
     const nameInput = document.getElementById("paySlipSearchEmployeeName");
     const idInput = document.getElementById("paySlipSearchEmployeeId");
     const dropdown = document.getElementById("paySlipNameSearchDropdown");
-    let nameTimeout;
-    if (nameInput && idInput && dropdown) {
-      nameInput.addEventListener("input", function() {
-        clearTimeout(nameTimeout);
-        const value = this.value.trim();
-        dropdown.innerHTML = "";
-        if (value.length < 2) return;
-        nameTimeout = setTimeout(async () => {
-          const token = localStorage.getItem("jwtToken");
-          const res = await fetch(`/api/employees/search?name=${encodeURIComponent(value)}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success && data.employees.length) {
-            dropdown.innerHTML = `<div style='position:absolute;z-index:1000;background:#fff;border:1px solid #ccc;width:100%;max-height:180px;overflow:auto;'>${data.employees.map(emp => {
-              const displayName = `${emp.firstName || emp.name || ''} ${emp.lastName || ''}`.trim();
-              return `<div class='dropdown-item' style='padding:8px;cursor:pointer;color:#8C001A;' data-id='${emp.employeeId}' data-name='${displayName.replace(/'/g, "&#39;")}' >${displayName} <span style='color:#764ba2;font-weight:bold;'>(${emp.employeeId})</span></div>`;
-            }).join('')}</div>`;
-            dropdown.querySelectorAll('.dropdown-item').forEach(item => {
-              item.onclick = function(e) {
-                idInput.value = this.getAttribute('data-id');
-                nameInput.value = this.getAttribute('data-name');
-                dropdown.innerHTML = "";
-                e.stopPropagation();
-              };
-            });
-          }
-        }, 300);
-      });
-      document.addEventListener('click', function(e) {
-        if (!dropdown.contains(e.target) && e.target !== nameInput) {
-          dropdown.innerHTML = "";
+    if (!nameInput || !idInput || !dropdown) return;
+
+    let searchCache = []; // Cache for employee search results
+    
+    // Function to fetch employees if cache is empty
+    async function fetchEmployeesForSearch() {
+      if (searchCache.length > 0) return;
+      try {
+        const token = localStorage.getItem("jwtToken");
+        const res = await fetch("/api/employees", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && Array.isArray(data.employees)) {
+          searchCache = data.employees.map(e => ({
+            id: e.employeeId,
+            name: `${e.firstName || ''} ${e.lastName || ''}`.trim()
+          }));
         }
-      });
+      } catch (err) {
+        // handle error silently
+      }
     }
+
+    nameInput.addEventListener("focus", fetchEmployeesForSearch);
+
+    nameInput.addEventListener("keyup", function () {
+      const term = nameInput.value.toLowerCase().trim();
+      if (!term) {
+        dropdown.innerHTML = "";
+        return;
+      }
+      const filtered = searchCache.filter(e =>
+        e.name.toLowerCase().includes(term)
+      );
+   dropdown.innerHTML = filtered
+  .map(
+    (e) => `
+      <div data-id="${e.id}" data-name="${e.name}" style="padding:6px 12px;cursor:pointer;">
+        <span style="color:#a020f0;font-weight:600;">${e.name}</span>
+        <span style="color:#222;font-weight:bold;"> (${e.id})</span>
+      </div>
+    `
+  )
+  .join("");
+    });
+
+dropdown.addEventListener("click", function (e) {
+  const targetDiv = e.target.closest('div[data-id]');
+  if (targetDiv) {
+    nameInput.value = targetDiv.dataset.name;
+    idInput.value = targetDiv.dataset.id;
+    dropdown.innerHTML = "";
+  }
+});
+
+    document.addEventListener('click', function(e) {
+      if (!dropdown.contains(e.target) && e.target !== nameInput) {
+        dropdown.innerHTML = "";
+      }
+    });
   })();
 
   // Handle pay slip search
@@ -7203,31 +7339,37 @@ function loadPaySlipView() {
     let month = document.getElementById("paySlipSearchMonth").value.trim();
     let year = document.getElementById("paySlipSearchYear").value.trim();
     const resultDiv = document.getElementById("paySlipViewResult");
+
     if (!empId) {
       resultDiv.style.display = "block";
       resultDiv.innerHTML = `<div class='error' style='color:#dc3545;font-weight:bold;'>Please select an employee from the dropdown.</div>`;
       return;
     }
+
     // Ensure month and year are numbers (no leading zeros)
     if (month) month = parseInt(month, 10);
     if (year) year = parseInt(year, 10);
+
     let url = `/api/payslip?employeeId=${encodeURIComponent(empId)}`;
     if (month) url += `&month=${encodeURIComponent(month)}`;
     if (year) url += `&year=${encodeURIComponent(year)}`;
+    
     resultDiv.style.display = "block";
     resultDiv.innerHTML = '<div class="loading">Loading pay slip...</div>';
+    
     try {
       const token = localStorage.getItem("jwtToken");
       const res = await fetch(url , {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      console.log("response->",data);
+      
       if (res.ok && data && data.employeeId) {
         let slip = data;
         // Remove any existing modal
         const existingModal = document.getElementById('paySlipModal');
         if (existingModal) existingModal.remove();
+
         const paySlipModalHTML = `
           <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
             <div class="modal-content" style="background:#fff;border-radius:12px;max-width:900px;width:98vw;max-height:95vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:0;position:relative;">
@@ -7235,17 +7377,19 @@ function loadPaySlipView() {
               <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
               <button id="clearPaySlipViewBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Clear</button>
               <button id="sendPaySlipViewBtn" class="generate-btn" style="padding:10px 28px;font-size:1.1em;">Send</button>
-              ${slip.slipId ? `<a href="/api/payslip/download/${slip.slipId}" target="_blank" class="download-btn" style="padding:10px 28px;font-size:1.1em;background:#43cea2;color:#fff;border:none;border-radius:6px;text-decoration:none;">Download PDF</a>` : ''}
+             
             </div>
             <div id="paySlipSendStatus" style="margin-top:1rem;"></div>
             </div>
           </div>
         `;
         document.body.insertAdjacentHTML('beforeend', paySlipModalHTML);
+        
         document.getElementById("clearPaySlipViewBtn").onclick = function() {
           const modal = document.getElementById('paySlipModal');
           if (modal) modal.remove();
         };
+
         document.getElementById("sendPaySlipViewBtn").onclick = async function() {
           // Call the new /api/payslip/send-notification endpoint
           const statusDiv = document.getElementById("paySlipSendStatus");
@@ -7277,16 +7421,80 @@ function loadPaySlipView() {
               statusDiv.innerHTML = `<span style="color:#dc3545;font-weight:bold;">Error sending pay slip notification: ${data.message}</span>`;
             }
           } catch (err) {
-            console.log(err.message);
-            statusDiv.innerHTML = `<span style="color:#dc3545;font-weight:bold;">Error sending pay slip notification.</span>`;
+            statusDiv.innerHTML = '<span style="color:#dc3545;font-weight:bold;">An error occurred while sending the notification.</span>';
           }
         };
+
       } else {
-        resultDiv.innerHTML = `<div class='error' style='color:#dc3545;font-weight:bold;'>No pay slip found for this employee for the selected month and year.</div>`;
+        resultDiv.innerHTML = `<div class='error'>${data.error || 'Pay slip not found.'}</div>`;
       }
     } catch (err) {
-      console.log(err.message);
-      resultDiv.innerHTML = `<div class='error' style='color:#dc3545;font-weight:bold;'>Error fetching pay slip.</div>`;
+      resultDiv.innerHTML = '<div class="error">An error occurred. Please try again.</div>';
     }
   });
+}
+function loadPaySlipSchedule() {
+  if (isAdminRole) {
+    alert('Admins do not have a pay slip schedule.');
+    return;
+  }
+  setActive('btn-pay-slip-schedule');
+  mainContent.innerHTML = `
+    <div class="pay-slip-schedule-container">
+      <h2 class="pay-slip-schedule-title">My Payslips</h2>
+      <div class="pay-slip-schedule-desc">Click to view or download your payslips</div>
+      <table class="pay-slip-schedule-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Month - Year</th>
+            <th>Uploaded On</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="paySlipScheduleTableBody">
+          <tr><td colspan="5" style="text-align:center;padding:2em;color:#aaa;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  `;
+  fetchMyPayslips();
+}
+async function fetchMyPayslips() {
+  const tbody = document.getElementById('paySlipScheduleTableBody');
+  if (!tbody) return;
+  try {
+    const token = localStorage.getItem('jwtToken');
+    const employee = JSON.parse(localStorage.getItem('employee'));
+    const res = await fetch(`/api/mypayslips?employeeId=${encodeURIComponent(employee.employeeId)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (!data.success || !Array.isArray(data.payslips)) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2em;color:#aaa;">No payslips found.</td></tr>';
+      return;
+    }
+    if (data.payslips.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2em;color:#aaa;">No payslips found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.payslips.map((p, idx) => {
+      const monthYear = `<b>${p.monthName} ${p.year}</b>`;
+      const uploadedOn = p.uploadedOn ? `<b>${p.uploadedOn}</b>` : '';
+      const status = p.status === 'new'
+        ? '<span class="status-new">New</span>'
+        : '<span class="status-viewed">Viewed</span>';
+      const viewBtn = `<button class="action-btn" ${p.status === 'new' ? '' : 'disabled'}>View</button>`;
+      return `<tr>
+        <td>${idx + 1}</td>
+        <td>${monthYear}</td>
+        <td>${uploadedOn}</td>
+        <td>${status}</td>
+        <td>${viewBtn}</td>
+      </tr>`;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2em;color:#aaa;">Error loading payslips.</td></tr>';
+  }
 }

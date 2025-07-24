@@ -10,6 +10,7 @@ const { GridFsStorage } = require("multer-gridfs-storage");
 const { GridFSBucket, ObjectId, Admin } = require("mongodb");
 const nodemailer = require("nodemailer");
 const puppeteer = require('puppeteer');
+const fs=require('fs');
 
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
@@ -2363,11 +2364,11 @@ function numberToWords(num) {
 }
 
 // POST: Generate and store pay slip
-app.post('/api/payslip/generate', async (req, res) => {
+app.post('/api/payslip/generate', authenticateToken, requireHRorAdmin, async (req, res) => {
   try {
     const data = req.body;
-    console.log(data);  
     const { employeeId, month, year, totalEarnings } = data;
+
     // Fetch latest employee details and merge into slip
 const employee = await Employee.findOne({ employeeId });
 if (employee) {
@@ -2381,6 +2382,7 @@ if (employee) {
     if (!employeeId || !month || !year || !totalEarnings) {
       return res.status(400).json({ success: false, message: 'employeeId, month, year, and totalEarnings are required.' });
     }
+
     // Calculate month range
     const m = parseInt(month) - 1; // JS months are 0-based
     const y = parseInt(year);
@@ -2388,7 +2390,17 @@ if (employee) {
     const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
     const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-    // Fetch leave requests for this employee in this month (approved only)
+    // --- Attendance calculation ---
+    const attendanceDocs = await Attendance.find({
+      employeeId,
+      date: { $gte: start, $lte: end },
+      status: 'Present',
+    });
+    const workingDays = attendanceDocs.length;
+    const totalDays = daysInMonth;
+    const absentDays = totalDays - workingDays;
+
+    // --- Leave calculation ---
     const leaveDocs = await LeaveRequest.find({
       employeeId,
       status: 'Approved',
@@ -2398,15 +2410,14 @@ if (employee) {
         { toDate: { $gte: start, $lte: end } },
       ],
     });
-    // Count leave types for the month
-    let pl = 0, npl = 0, dnpl = 0, cl = 0, sl = 0, unpaidLeave = 0;
+    let pl = 0, npl = 0, dnpl = 0, cl = 0, sl = 0, unpaidLeave = 0, paidLeaves = 0;
     leaveDocs.forEach(lr => {
-      // For each leave, count days in this month and type
+      paidLeaves += lr.paidLeaves || 0;
       const from = new Date(Math.max(start, lr.fromDate));
       const to = new Date(Math.min(end, lr.toDate));
       let leaveDays = [];
       for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
-        if (d.getDay() !== 0) leaveDays.push(new Date(d)); // skip Sundays
+        if (d.getDay() !== 0) leaveDays.push(new Date(d));
       }
       if (Array.isArray(lr.leaveType)) {
         lr.leaveType.forEach((type, idx) => {
@@ -2419,31 +2430,29 @@ if (employee) {
           else if (type === 'Unpaid') unpaidLeave++;
         });
       } else {
-        // Fallback: use unpaidLeaves and dnplCount fields
         unpaidLeave += lr.unpaidLeaves || 0;
         dnpl += lr.dnplCount || 0;
       }
     });
+
     // Calculate salary components from total earnings
     const totalEarningsNum = parseFloat(totalEarnings) || 0;
     const basic = +(totalEarningsNum * 0.7).toFixed(2);
     const hra = +(totalEarningsNum * 0.15).toFixed(2);
     const specialAllowance = +(totalEarningsNum * 0.15).toFixed(2);
+
     // Calculate deductions
     const nplDeduction = npl * (totalEarningsNum / daysInMonth);
     const dnplDeduction = dnpl * 2 * (totalEarningsNum / daysInMonth);
     const epf = 0.00, ptax = 0.00, advance = 0.00;
     const totalDeductions = nplDeduction + dnplDeduction + epf + ptax + advance;
-    // Net pay = total earnings - total deductions
     const calculatedNetPay = totalEarningsNum - totalDeductions;
-    const netPayWords =  numberToWords(Math.round(calculatedNetPay)) + ' Only';
-// If edited values are present, use them
+    const netPayWords = numberToWords(Math.round(calculatedNetPay)) + ' Only';
 let editedTotalDeductions = data.deductions && typeof data.deductions.totalDeductions === 'number' ? data.deductions.totalDeductions : null;
 let editedNetPay = typeof data.netPay === 'number' ? data.netPay : null;
-
 const finalTotalDeductions = editedTotalDeductions !== null ? editedTotalDeductions : +totalDeductions.toFixed(2);
 const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toFixed(2);
-    // Compose slip
+
     const slip = {
       ...data,
       attendance: {
@@ -2453,7 +2462,10 @@ const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toF
         cl,
         sl,
         unpaidLeave,
-        totalDays: daysInMonth
+        totalDays,
+        workingDays,
+        absentDays,
+        paidLeaves
       },
       earnings: { basic, hra, specialAllowance, totalEarnings: totalEarningsNum },
       deductions: {
@@ -2465,8 +2477,9 @@ const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toF
         totalDeductions: finalTotalDeductions
       },
       netPay: finalNetPay,
-      netPayWords:  numberToWords(Math.round(finalNetPay)) + ' Only'
+      netPayWords: numberToWords(Math.round(finalNetPay)) + ' Only'
     };
+
     // Store in DB
     const paySlipDoc = new PaySlip({
       ...data,
@@ -2480,6 +2493,7 @@ const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toF
     await paySlipDoc.save();
     res.json({ success: true, payslip: slip });
   } catch (err) {
+    console.log(err.message);
     res.status(500).json({ success: false, message: 'Error generating pay slip', error: err.message });
   }
 });
@@ -2551,6 +2565,7 @@ app.post('/api/payslip/preview', authenticateToken, requireHRorAdmin, async (req
   try {
     const data = req.body;
     const { employeeId, month, year, totalEarnings } = data;
+
     // Fetch latest employee details and merge into slip
 const employee = await Employee.findOne({ employeeId });
 if (employee) {
@@ -2564,6 +2579,7 @@ if (employee) {
     if (!employeeId || !month || !year || !totalEarnings) {
       return res.status(400).json({ success: false, message: 'employeeId, month, year, and totalEarnings are required.' });
     }
+
     // Calculate month range
     const m = parseInt(month) - 1; // JS months are 0-based
     const y = parseInt(year);
@@ -2571,7 +2587,17 @@ if (employee) {
     const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
     const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-    // Fetch leave requests for this employee in this month (approved only)
+    // --- Attendance calculation ---
+    const attendanceDocs = await Attendance.find({
+      employeeId,
+      date: { $gte: start, $lte: end },
+      status: 'Present',
+    });
+    const workingDays = attendanceDocs.length;
+    const totalDays = daysInMonth;
+    const absentDays = totalDays - workingDays;
+
+    // --- Leave calculation ---
     const leaveDocs = await LeaveRequest.find({
       employeeId,
       status: 'Approved',
@@ -2581,9 +2607,9 @@ if (employee) {
         { toDate: { $gte: start, $lte: end } },
       ],
     });
-    // Count leave types for the month
-    let pl = 0, npl = 0, dnpl = 0, cl = 0, sl = 0, unpaidLeave = 0;
+    let pl = 0, npl = 0, dnpl = 0, cl = 0, sl = 0, unpaidLeave = 0, paidLeaves = 0;
     leaveDocs.forEach(lr => {
+      paidLeaves += lr.paidLeaves || 0;
       const from = new Date(Math.max(start, lr.fromDate));
       const to = new Date(Math.min(end, lr.toDate));
       let leaveDays = [];
@@ -2605,11 +2631,13 @@ if (employee) {
         dnpl += lr.dnplCount || 0;
       }
     });
+
     // Calculate salary components from total earnings
     const totalEarningsNum = parseFloat(totalEarnings) || 0;
     const basic = +(totalEarningsNum * 0.7).toFixed(2);
     const hra = +(totalEarningsNum * 0.15).toFixed(2);
     const specialAllowance = +(totalEarningsNum * 0.15).toFixed(2);
+
     // Calculate deductions
     const nplDeduction = npl * (totalEarningsNum / daysInMonth);
     const dnplDeduction = dnpl * 2 * (totalEarningsNum / daysInMonth);
@@ -2621,6 +2649,7 @@ if (employee) {
     let editedNetPay = typeof data.netPay === 'number' ? data.netPay : null;
     const finalTotalDeductions = editedTotalDeductions !== null ? editedTotalDeductions : +totalDeductions.toFixed(2);
     const finalNetPay = editedNetPay !== null ? editedNetPay : +calculatedNetPay.toFixed(2);
+
     const slip = {
       ...data,
       attendance: {
@@ -2630,7 +2659,10 @@ if (employee) {
         cl,
         sl,
         unpaidLeave,
-        totalDays: daysInMonth
+        totalDays,
+        workingDays,
+        absentDays,
+        paidLeaves
       },
       earnings: { basic, hra, specialAllowance, totalEarnings: totalEarningsNum },
       deductions: {
@@ -2644,8 +2676,49 @@ if (employee) {
       netPay: finalNetPay,
       netPayWords: numberToWords(Math.round(finalNetPay)) + ' Only'
     };
-    res.json({ success: true, payslip: slip });
+
+    // Flatten the response to match the GET /api/payslip structure
+    const flatPayslip = {
+      employeeId: slip.employeeId,
+      name: slip.name,
+      month: slip.month,
+      year: slip.year,
+      monthName: new Date(slip.year, slip.month - 1).toLocaleString('default', { month: 'long' }),
+      designation: slip.designation,
+      location: slip.address,
+      panNo: slip.panNo,
+      employeeName: slip.name,
+      address: slip.address,
+      doj: slip.doj ? new Date(slip.doj).toLocaleDateString() : '',
+      ctc: slip.ctc,
+      workingDays: slip.attendance.workingDays,
+      weekendDays: slip.attendance.weekendDays,
+      clCount: slip.attendance.cl,
+      slCount: slip.attendance.sl,
+      plCount: slip.attendance.pl,
+      nplCount: slip.attendance.npl,
+      dnplCount: slip.attendance.dnpl,
+      unpaidLeave: slip.attendance.unpaidLeave,
+      totalDays: slip.attendance.totalDays,
+      absentDays: slip.attendance.absentDays,
+      paidLeaves: slip.attendance.paidLeaves,
+      basic: slip.earnings.basic,
+      hra: slip.earnings.hra,
+      specialAllowance: slip.earnings.specialAllowance,
+      totalEarnings: slip.earnings.totalEarnings,
+      epf: slip.deductions.epf,
+      ptax: slip.deductions.ptax,
+      advance: slip.deductions.advance,
+      dnplDeduction: slip.deductions.dnplDeduction,
+      nplDeduction: slip.deductions.nplDeduction,
+      totalDeductions: slip.deductions.totalDeductions,
+      netPay: slip.netPay,
+      netPayWords: slip.netPayWords
+    };
+
+    res.json({ success: true, payslip: flatPayslip });
   } catch (err) {
+    console.log(err.message);
     res.status(500).json({ success: false, message: 'Error generating pay slip preview', error: err.message });
   }
 });
@@ -2697,10 +2770,12 @@ app.get('/api/payslip/download/:slipId',  async (req, res) => {
   try {
     const { slipId } = req.params;
     const slip = await PaySlip.findById(slipId);
+    console.log(slip);
     if (!slip) {
       return res.status(404).send('Pay slip not found');
     }
     // Only allow the employee, or admin/HR
+    console.log(req);
     const isAdminOrHR = ["admin", "hr_admin", "hr_manager", "hr_executive", "hr_recruiter"].includes(req.user.role);
     if (req.user.employeeId !== slip.employeeId && !isAdminOrHR) {
       return res.status(403).send('Forbidden');
@@ -2794,6 +2869,7 @@ app.get('/api/payslip/download/:slipId',  async (req, res) => {
     res.setHeader('Content-Type', 'application/pdf');
     res.send(pdfBuffer);
   } catch (err) {
+    console.log(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -2843,13 +2919,18 @@ app.get('/api/payslip', async (req, res) => {
       dnplCount: slip.attendance?.dnpl || '',
       unpaidLeave: slip.attendance?.unpaidLeave || '',
       totalDays: slip.attendance?.totalDays || '',
+      absentDays: (slip.attendance?.totalDays && slip.attendance?.workingDays !== undefined) ? (slip.attendance.totalDays - slip.attendance.workingDays) : '',
+      paidLeaves: ((slip.attendance?.cl || 0) + (slip.attendance?.sl || 0) + (slip.attendance?.pl || 0)),
       basic: slip.earnings?.basic || '',
       hra: slip.earnings?.hra || '',
       specialAllowance: slip.earnings?.specialAllowance || '',
       totalEarnings: slip.earnings?.totalEarnings || '',
       epf: slip.deductions?.epf || '',
+      esi: slip.deductions?.esi || '',
       ptax: slip.deductions?.ptax || '',
       advance: slip.deductions?.advance || '',
+      dnplDeduction: slip.deductions?.dnplDeduction || '',
+      nplDeduction: slip.deductions?.nplDeduction || '',
       totalDeductions: slip.deductions?.totalDeductions || '',
       netPay: slip.netPay || '',
       netPayWords: slip.netPayWords || ''
@@ -2917,31 +2998,235 @@ function numberToWords(num) {
   return inWords(num);
 }
 
-function generatePayslipHTML(payslip) {
+function generatePayslipHTML() {
   // Inline CSS from preview-payslip.html
-  console.log("hi");
-  const css = `
-    <style>
-      body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #222; margin: 0; padding: 0; }
-      .payslip-container { max-width: 800px; margin: 40px auto; background: #fff; border: 1.5px solid #bbb; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); padding: 0; overflow: hidden; }
-      .payslip-header { display: flex; align-items: center; border-bottom: 2px solid #eee; padding: 18px 32px 10px 32px; background: #f8f6ff; }
-      .payslip-logo { width: 60px; height: 60px; margin-right: 24px; }
-      .payslip-title-block { flex: 1; }
-      .payslip-title { font-size: 1.7em; font-weight: 700; color: #4b2e83; margin: 0 0 2px 0; }
-      .payslip-period { font-size: 1.1em; color: #555; margin: 0; }
-      .payslip-table { width: 100%; border-collapse: collapse; margin: 0; font-size: 1em; }
-      .payslip-table th, .payslip-table td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
-      .payslip-table th { background: #f3eaff; color: #4b2e83; font-weight: 600; }
-      .payslip-section-title { background: #f8f6ff; color: #4b2e83; font-weight: 600; padding: 8px 0 8px 16px; font-size: 1.1em; border-left: 4px solid #4b2e83; margin: 0; }
-      .payslip-row-highlight { background: #f8f6ff; }
-      .payslip-footer { font-size: 0.98em; color: #666; padding: 16px 32px 10px 32px; border-top: 1px solid #eee; background: #faf9fd; text-align: left; }
-      .payslip-signature { font-size: 0.95em; color: #888; margin-top: 18px; text-align: right; }
-      @media (max-width: 900px) { .payslip-container { max-width: 98vw; } .payslip-header, .payslip-footer { padding: 12px 8vw; } }
-      @media (max-width: 600px) { .payslip-header, .payslip-footer { padding: 10px 2vw; } .payslip-title { font-size: 1.2em; } }
-    </style>
-  `;
-  // HTML structure
-  return `<!DOCTYPE html>
+  // console.log("hi");
+  // const css = `
+  //   <style>
+  //     body { font-family: 'Segoe UI', Arial, sans-serif; background: #fff; color: #222; margin: 0; padding: 0; }
+  //     .payslip-container { max-width: 800px; margin: 40px auto; background: #fff; border: 1.5px solid #bbb; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); padding: 0; overflow: hidden; }
+  //     .payslip-header { display: flex; align-items: center; border-bottom: 2px solid #eee; padding: 18px 32px 10px 32px; background: #f8f6ff; }
+  //     .payslip-logo { width: 60px; height: 60px; margin-right: 24px; }
+  //     .payslip-title-block { flex: 1; }
+  //     .payslip-title { font-size: 1.7em; font-weight: 700; color: #4b2e83; margin: 0 0 2px 0; }
+  //     .payslip-period { font-size: 1.1em; color: #555; margin: 0; }
+  //     .payslip-table { width: 100%; border-collapse: collapse; margin: 0; font-size: 1em; }
+  //     .payslip-table th, .payslip-table td { border: 1px solid #ddd; padding: 8px 10px; text-align: left; }
+  //     .payslip-table th { background: #f3eaff; color: #4b2e83; font-weight: 600; }
+  //     .payslip-section-title { background: #f8f6ff; color: #4b2e83; font-weight: 600; padding: 8px 0 8px 16px; font-size: 1.1em; border-left: 4px solid #4b2e83; margin: 0; }
+  //     .payslip-row-highlight { background: #f8f6ff; }
+  //     .payslip-footer { font-size: 0.98em; color: #666; padding: 16px 32px 10px 32px; border-top: 1px solid #eee; background: #faf9fd; text-align: left; }
+  //     .payslip-signature { font-size: 0.95em; color: #888; margin-top: 18px; text-align: right; }
+  //     @media (max-width: 900px) { .payslip-container { max-width: 98vw; } .payslip-header, .payslip-footer { padding: 12px 8vw; } }
+  //     @media (max-width: 600px) { .payslip-header, .payslip-footer { padding: 10px 2vw; } .payslip-title { font-size: 1.2em; } }
+  //   </style>
+  // `;
+  // // HTML structure
+  // return `<!DOCTYPE html>
+  // <html lang="en">
+  // <head>
+  //   <meta charset="UTF-8">
+  //   <title>Payslip Preview</title>
+  //   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //   ${css}
+  // </head>
+  // <body>
+  //   <div class="payslip-container">
+  //      <div class="payslip-header">
+  //       <!--<img src="${payslip.logoUrl || `file://${__dirname}/public/images/logo.png`}" alt="AssignOpedia Logo" class="payslip-logo">-->
+  //       <div class="payslip-title-block">
+  //         <div class="payslip-title">AssignOpedia</div>
+  //         <div class="payslip-period">Pay slip for the Month of <span id="monthYear">${payslip.monthName || ''} ${payslip.year || ''}</span></div>
+  //       </div>
+  //     </div>
+  //     <h2 style="text-align:center;margin:18px 0 10px 0;font-size:1.3em;color:#4b2e83;">Pay Slip</h2>
+  //     <table class="payslip-table" style="margin-bottom:0;">
+  //       <tr>
+  //         <th>Employee No.</th>
+  //         <td id="empNo">${payslip.employeeId || ''}</td>
+  //         <th>Designation</th>
+  //         <td id="designation">${payslip.designation || ''}</td>
+  //         <th>Posting/Location</th>
+  //         <td id="location">${payslip.location || ''}</td>
+  //         <th>Employee PAN No</th>
+  //         <td id="panNo">${payslip.panNo || ''}</td>
+  //       </tr>
+  //       <tr>
+  //         <th>Employee Name</th>
+  //         <td id="empName">${payslip.employeeName || ''}</td>
+  //         <th>Address</th>
+  //         <td id="address" colspan="3">${payslip.address || ''}</td>
+  //         <th>Date of Joining</th>
+  //         <td id="doj" colspan="2">${payslip.doj || ''}</td>
+  //       </tr>
+  //     </table>
+  //     <table class="payslip-table" style="margin-top:0;">
+  //       <tr>
+  //         <th>CTC/month</th>
+  //         <td id="ctc" colspan="7">${payslip.ctc || ''}</td>
+  //       </tr>
+  //     </table>
+  //     <div class="payslip-section-title">Attendance</div>
+  //     <table class="payslip-table">
+  //       <tr>
+  //         <th>Working Days</th>
+  //         <td id="workingDays">${payslip.workingDays || ''}</td>
+  //         <th>Weekend Days</th>
+  //         <td id="weekendDays">${payslip.weekendDays || ''}</td>
+  //         <th>CL</th>
+  //         <td id="clCount">${payslip.clCount || ''}</td>
+  //         <th>SL</th>
+  //         <td id="slCount">${payslip.slCount || ''}</td>
+  //       </tr>
+  //       <tr>
+  //         <th>PL</th>
+  //         <td id="plCount">${payslip.plCount || ''}</td>
+  //         <th>NPL</th>
+  //         <td id="nplCount">${payslip.nplCount || ''}</td>
+  //         <th>DNPL</th>
+  //         <td id="dnplCount">${payslip.dnplCount || ''}</td>
+  //         <th>Unpaid Leave</th>
+  //         <td id="unpaidLeave">${payslip.unpaidLeave || ''}</td>
+  //       </tr>
+  //       <tr>
+  //         <th>Total Days</th>
+  //         <td id="totalDays">${payslip.totalDays || ''}</td>
+  //         <th colspan="6"></th>
+  //       </tr>
+  //     </table>
+  //     <div class="payslip-section-title">Monthly Earnings</div>
+  //     <table class="payslip-table">
+  //       <tr>
+  //         <th>Basic</th>
+  //         <td id="basic">${payslip.basic || ''}</td>
+  //         <th>HRA</th>
+  //         <td id="hra">${payslip.hra || ''}</td>
+  //         <th>Special Allowance</th>
+  //         <td id="specialAllowance">${payslip.specialAllowance || ''}</td>
+  //         <th>Total Earnings</th>
+  //         <td id="totalEarnings">${payslip.totalEarnings || ''}</td>
+  //       </tr>
+  //     </table>
+  //     <div class="payslip-section-title">Deductions</div>
+  //     <table class="payslip-table">
+  //       <tr>
+  //         <th>EPF</th>
+  //         <td id="epf">${payslip.epf || ''}</td>
+  //         <th>P. Tax</th>
+  //         <td id="ptax">${payslip.ptax || ''}</td>
+  //         <th>Advance</th>
+  //         <td id="advance">${payslip.advance || ''}</td>
+  //         <th>Total Deductions</th>
+  //         <td id="totalDeductions">${payslip.totalDeductions || ''}</td>
+  //       </tr>
+  //     </table>
+  //     <table class="payslip-table" style="margin-top:0;">
+  //       <tr>
+  //         <th>Net Pay: Rs.</th>
+  //         <td id="netPay" colspan="7">${payslip.netPay || ''}</td>
+  //       </tr>
+  //       <tr>
+  //         <td colspan="8" style="font-size:0.98em;color:#555;">Net Salary Credited to Your, Bank Account Number</td>
+  //       </tr>
+  //     </table>
+  //     <div class="payslip-footer">
+  //       Rupees <span id="netPayWords">${payslip.netPayWords || numberToWords(Math.round(payslip.netPay || 0)) + ' Only'}</span><br>
+  //       <span style="font-size:0.97em;">This is computer generated print, does not require any signature.</span>
+  //       <div class="payslip-signature">AssignOpedia HR/Admin</div>
+  //     </div>
+  //   </div>
+  // </body>
+  // </html>`;
+
+   const css = `
+   <style>
+    .payslip-main-box {
+      max-width: 800px;
+      margin: 32px auto;
+      border: 2px solid #7c4dbe;
+      border-radius: 6px;
+      background: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #222;
+      box-shadow: 0 2px 16px rgba(124,77,190,0.08);
+      padding: 0;
+    }
+    .payslip-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 24px 32px 0 32px;
+    }
+    .payslip-header-title {
+      font-size: 1.4em;
+      font-weight: 700;
+      color: #2d197c;
+      margin-bottom: 4px;
+    }
+    .payslip-header-logo {
+      height: 60px;
+      margin-left: 16px;
+    }
+    .payslip-period {
+      font-size: 1.1em;
+      color: #222;
+      margin-bottom: 12px;
+      text-align: right;
+    }
+    .payslip-section {
+      margin: 0 32px 24px 32px;
+      border: 1px solid #e0d7f3;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .payslip-section-title {
+      background: #7c4dbe;
+      color: #fff;
+      font-weight: 600;
+      padding: 8px 16px;
+      font-size: 1.08em;
+      border-bottom: 1px solid #e0d7f3;
+    }
+    .payslip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1em;
+    }
+    .payslip-table th, .payslip-table td {
+      border: 1px solid #e0d7f3;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .payslip-table th {
+      background: #f3eaff;
+      color: #2d197c;
+      font-weight: 600;
+    }
+    .payslip-table td {
+      background: #fff;
+    }
+    .payslip-net-row th, .payslip-net-row td {
+      font-size: 1.1em;
+      font-weight: 700;
+      color: #2d197c;
+      background: #f3eaff;
+    }
+    .payslip-footer {
+      margin: 24px 32px 24px 32px;
+      font-size: 0.98em;
+      color: #888;
+      text-align: right;
+    }
+    @media (max-width: 900px) {
+      .payslip-main-box, .payslip-section, .payslip-footer, .payslip-header-row {
+        margin: 0;
+        padding: 0 8px;
+      }
+    }
+      </style>
+       `;
+
+       return `<!DOCTYPE html>
   <html lang="en">
   <head>
     <meta charset="UTF-8">
@@ -2950,113 +3235,72 @@ function generatePayslipHTML(payslip) {
     ${css}
   </head>
   <body>
-    <div class="payslip-container">
-       <div class="payslip-header">
-        <!--<img src="${payslip.logoUrl || 'file://${__dirname}/public/images/logo.png'}" alt="AssignOpedia Logo" class="payslip-logo">-->
-        <div class="payslip-title-block">
-          <div class="payslip-title">AssignOpedia</div>
-          <div class="payslip-period">Pay slip for the Month of <span id="monthYear">${payslip.monthName || ''} ${payslip.year || ''}</span></div>
-        </div>
+    <div class="payslip-main-box">
+    <div class="payslip-header-row">
+      <div>
+        <div class="payslip-header-title">Assignopedia Services</div>
+        <div class="payslip-period">Payslip for the Month of <b>${slip.monthName} ${slip.year}</b></div>
       </div>
-      <h2 style="text-align:center;margin:18px 0 10px 0;font-size:1.3em;color:#4b2e83;">Pay Slip</h2>
-      <table class="payslip-table" style="margin-bottom:0;">
-        <tr>
-          <th>Employee No.</th>
-          <td id="empNo">${payslip.employeeId || ''}</td>
-          <th>Designation</th>
-          <td id="designation">${payslip.designation || ''}</td>
-          <th>Posting/Location</th>
-          <td id="location">${payslip.location || ''}</td>
-          <th>Employee PAN No</th>
-          <td id="panNo">${payslip.panNo || ''}</td>
-        </tr>
-        <tr>
-          <th>Employee Name</th>
-          <td id="empName">${payslip.employeeName || ''}</td>
-          <th>Address</th>
-          <td id="address" colspan="3">${payslip.address || ''}</td>
-          <th>Date of Joining</th>
-          <td id="doj" colspan="2">${payslip.doj || ''}</td>
-        </tr>
-      </table>
-      <table class="payslip-table" style="margin-top:0;">
-        <tr>
-          <th>CTC/month</th>
-          <td id="ctc" colspan="7">${payslip.ctc || ''}</td>
-        </tr>
-      </table>
-      <div class="payslip-section-title">Attendance</div>
+      <img src="images/logo.png" alt="Logo" class="payslip-header-logo" />
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Employee Details</div>
       <table class="payslip-table">
-        <tr>
-          <th>Working Days</th>
-          <td id="workingDays">${payslip.workingDays || ''}</td>
-          <th>Weekend Days</th>
-          <td id="weekendDays">${payslip.weekendDays || ''}</td>
-          <th>CL</th>
-          <td id="clCount">${payslip.clCount || ''}</td>
-          <th>SL</th>
-          <td id="slCount">${payslip.slCount || ''}</td>
-        </tr>
-        <tr>
-          <th>PL</th>
-          <td id="plCount">${payslip.plCount || ''}</td>
-          <th>NPL</th>
-          <td id="nplCount">${payslip.nplCount || ''}</td>
-          <th>DNPL</th>
-          <td id="dnplCount">${payslip.dnplCount || ''}</td>
-          <th>Unpaid Leave</th>
-          <td id="unpaidLeave">${payslip.unpaidLeave || ''}</td>
-        </tr>
-        <tr>
-          <th>Total Days</th>
-          <td id="totalDays">${payslip.totalDays || ''}</td>
-          <th colspan="6"></th>
-        </tr>
+        <tr><th>Employee Name</th><td>${slip.employeeName || ''}</td><th>Employee ID</th><td>${slip.employeeId || ''}</td></tr>
+        <tr><th>Department</th><td>${slip.department || ''}</td><th>Designation</th><td>${slip.designation || ''}</td></tr>
+        <tr><th>Employee Address</th><td colspan="3">${slip.location || ''}</td></tr>
+        <tr><th>Date of Joining</th><td>${slip.doj || ''}</td><td colspan="2"></td></tr>
       </table>
-      <div class="payslip-section-title">Monthly Earnings</div>
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Attendance Summary</div>
       <table class="payslip-table">
+        <tr><th>Total Present</th><th>Total Absent</th><th>Paid Leaves</th><th>NPL</th><th>DNPL</th></tr>
         <tr>
-          <th>Basic</th>
-          <td id="basic">${payslip.basic || ''}</td>
-          <th>HRA</th>
-          <td id="hra">${payslip.hra || ''}</td>
-          <th>Special Allowance</th>
-          <td id="specialAllowance">${payslip.specialAllowance || ''}</td>
-          <th>Total Earnings</th>
-          <td id="totalEarnings">${payslip.totalEarnings || ''}</td>
+          <td>${slip.workingDays || ''}</td>
+          <td>${slip.absentDays || ''}</td>
+          <td>${slip.paidLeaves || ''}</td>
+          <td>${slip.nplCount || ''}</td>
+          <td>${slip.dnplCount || ''}</td>
         </tr>
       </table>
+    </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Earnings</div>
+      <table class="payslip-table">
+        <tr><th>Description</th><th>Amount (INR)</th></tr>
+        <tr><td>Basic Salary</td><td>${slip.basic || '0.00'}</td></tr>
+        <tr><td>HRA</td><td>${slip.hra || '0.00'}</td></tr>
+        <tr><td>Special Allowance</td><td>${slip.specialAllowance || '0.00'}</td></tr>
+        <tr><th>Total Earnings</th><th>${slip.totalEarnings || '0.00'}</th></tr>
+      </table>
+    </div>
+    <div class="payslip-section">
       <div class="payslip-section-title">Deductions</div>
       <table class="payslip-table">
-        <tr>
-          <th>EPF</th>
-          <td id="epf">${payslip.epf || ''}</td>
-          <th>P. Tax</th>
-          <td id="ptax">${payslip.ptax || ''}</td>
-          <th>Advance</th>
-          <td id="advance">${payslip.advance || ''}</td>
-          <th>Total Deductions</th>
-          <td id="totalDeductions">${payslip.totalDeductions || ''}</td>
-        </tr>
+        <tr><th>Description</th><th>Amount (INR)</th></tr>
+        <tr><td>Provident Fund (PF)</td><td>${slip.epf || '0.00'}</td></tr>
+        <tr><td>ESI</td><td>${slip.esi || '0.00'}</td></tr>
+        <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
+        <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
+        <tr><th>Total Deductions</th><th>${slip.totalDeductions || '0.00'}</th></tr>
       </table>
-      <table class="payslip-table" style="margin-top:0;">
-        <tr>
-          <th>Net Pay: Rs.</th>
-          <td id="netPay" colspan="7">${payslip.netPay || ''}</td>
-        </tr>
-        <tr>
-          <td colspan="8" style="font-size:0.98em;color:#555;">Net Salary Credited to Your, Bank Account Number</td>
-        </tr>
-      </table>
-      <div class="payslip-footer">
-        Rupees <span id="netPayWords">${payslip.netPayWords || numberToWords(Math.round(payslip.netPay || 0)) + ' Only'}</span><br>
-        <span style="font-size:0.97em;">This is computer generated print, does not require any signature.</span>
-        <div class="payslip-signature">AssignOpedia HR/Admin</div>
-      </div>
     </div>
+    <div class="payslip-section">
+      <div class="payslip-section-title">Net Salary</div>
+      <table class="payslip-table">
+        <tr class="payslip-net-row"><th>Net Pay (INR)</th><td>${slip.netPay || '0.00'}</td></tr>
+        <tr><th>Net Pay (in words)</th><td>${slip.netPayWords || ''}</td></tr>
+      </table>
+    </div>
+    <div class="payslip-footer">
+      This is a system generated payslip and does not require signature.
+    </div>
+  </div>
   </body>
   </html>`;
 }
+
 
 app.get('/api/download-payslip', async (req, res) => {
   const { employeeId, month, year } = req.query;
@@ -3065,45 +3309,46 @@ app.get('/api/download-payslip', async (req, res) => {
   try {
     // Fetch payslip from DB (reuse logic from /api/payslip)
     
-    const payslipDoc = await PaySlip.findOne({
-      employeeId,
-      month: parseInt(month),
-      year: parseInt(year)
-    });
-    if (!payslipDoc) return res.status(404).json({ error: 'Payslip not found' });
-    let payslip = payslipDoc.toObject ? payslipDoc.toObject() : payslipDoc._doc || payslipDoc;
-    if (payslip.slipData && typeof payslip.slipData === 'object') {
-      payslip = { ...payslip, ...payslip.slipData };
-    }
-    // Format for template
-    const monthName = new Date(payslip.year, payslip.month - 1).toLocaleString('default', { month: 'long' });
-    const payslipData = {
-      ...payslip,
-      monthName,
-      doj: payslip.doj ? new Date(payslip.doj).toLocaleDateString() : '',
-      ctc: payslip.earnings?.ctc || payslip.ctc || '',
-      workingDays: payslip.attendance?.workingDays || payslip.attendance?.totalDays || payslip.workingDays || payslip.totalDays || '',
-      weekendDays: payslip.attendance?.weekendDays || payslip.weekendDays || '',
-      clCount: payslip.attendance?.cl || payslip.cl || '',
-      slCount: payslip.attendance?.sl || payslip.sl || '',
-      plCount: payslip.attendance?.pl || payslip.pl || '',
-      nplCount: payslip.attendance?.npl || payslip.npl || '',
-      dnplCount: payslip.attendance?.dnpl || payslip.dnpl || '',
-      unpaidLeave: payslip.attendance?.unpaidLeave || payslip.unpaidLeave || '',
-      totalDays: payslip.attendance?.totalDays || payslip.totalDays || '',
-      basic: payslip.earnings?.basic || payslip.basic || '',
-      hra: payslip.earnings?.hra || payslip.hra || '',
-      specialAllowance: payslip.earnings?.specialAllowance || payslip.specialAllowance || '',
-      totalEarnings: payslip.earnings?.totalEarnings || payslip.totalEarnings || '',
-      epf: payslip.deductions?.epf || payslip.epf || '',
-      ptax: payslip.deductions?.ptax || payslip.ptax || '',
-      advance: payslip.deductions?.advance || payslip.advance || '',
-      totalDeductions: payslip.deductions?.totalDeductions || payslip.totalDeductions || '',
-      netPay: payslip.netPay || '',
-      netPayWords: payslip.netPayWords || ''
-    };
+    // const payslipDoc = await PaySlip.findOne({
+    //   employeeId,
+    //   month: parseInt(month),
+    //   year: parseInt(year)
+    // });
+    // console.log(payslipDoc);
+    // if (!payslipDoc) return res.status(404).json({ error: 'Payslip not found' });
+    // let payslip = payslipDoc.toObject ? payslipDoc.toObject() : payslipDoc._doc || payslipDoc;
+    // if (payslip.slipData && typeof payslip.slipData === 'object') {
+    //   payslip = { ...payslip, ...payslip.slipData };
+    // }
+    // // Format for template
+    // const monthName = new Date(payslip.year, payslip.month - 1).toLocaleString('default', { month: 'long' });
+    // const payslipData = {
+    //   ...payslip,
+    //   monthName,
+    //   doj: payslip.doj ? new Date(payslip.doj).toLocaleDateString() : '',
+    //   ctc: payslip.earnings?.ctc || payslip.ctc || '',
+    //   workingDays: payslip.attendance?.workingDays || payslip.attendance?.totalDays || payslip.workingDays || payslip.totalDays || '',
+    //   weekendDays: payslip.attendance?.weekendDays || payslip.weekendDays || '',
+    //   clCount: payslip.attendance?.cl || payslip.cl || '',
+    //   slCount: payslip.attendance?.sl || payslip.sl || '',
+    //   plCount: payslip.attendance?.pl || payslip.pl || '',
+    //   nplCount: payslip.attendance?.npl || payslip.npl || '',
+    //   dnplCount: payslip.attendance?.dnpl || payslip.dnpl || '',
+    //   unpaidLeave: payslip.attendance?.unpaidLeave || payslip.unpaidLeave || '',
+    //   totalDays: payslip.attendance?.totalDays || payslip.totalDays || '',
+    //   basic: payslip.earnings?.basic || payslip.basic || '',
+    //   hra: payslip.earnings?.hra || payslip.hra || '',
+    //   specialAllowance: payslip.earnings?.specialAllowance || payslip.specialAllowance || '',
+    //   totalEarnings: payslip.earnings?.totalEarnings || payslip.totalEarnings || '',
+    //   epf: payslip.deductions?.epf || payslip.epf || '',
+    //   ptax: payslip.deductions?.ptax || payslip.ptax || '',
+    //   advance: payslip.deductions?.advance || payslip.advance || '',
+    //   totalDeductions: payslip.deductions?.totalDeductions || payslip.totalDeductions || '',
+    //   netPay: payslip.netPay || '',
+    //   netPayWords: payslip.netPayWords || ''
+    // };
     // Generate HTML
-    const html = generatePayslipHTML(payslipData);
+    const html = generatePayslipHTML();
     browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
@@ -3112,13 +3357,41 @@ app.get('/api/download-payslip', async (req, res) => {
     await browser.close();
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="Payslip-${employeeId}-${month}-${year}.pdf"`,
+      'Content-Disposition': 'inline; filename="Payslip.pdf"',
       'Content-Length': pdfBuffer.length
     });
     res.send(pdfBuffer);
+
   } catch (err) {
     if (browser) await browser.close();
     console.error("pdf generation error",err.message);
     res.status(500).json({ error: 'Failed to generate PDF' });
+  }
+});
+
+// --- API: Get all payslips for an employee (for Pay Slip Schedule) ---
+app.get('/api/mypayslips', authenticateToken, async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    if (!employeeId) {
+      return res.status(400).json({ success: false, message: 'employeeId is required.' });
+    }
+    // Fetch payslips for this employee, sorted by year and month descending
+    const payslips = await PaySlip.find({ employeeId }).sort({ year: -1, month: -1 });
+    if (!payslips || payslips.length === 0) {
+      return res.json({ success: true, payslips: [] });
+    }
+    // Map to required fields
+    const result = payslips.map(slip => ({
+      slipId: slip._id,
+      month: slip.month,
+      year: slip.year,
+      monthName: new Date(slip.year, slip.month - 1).toLocaleString('default', { month: 'long' }),
+      uploadedOn: slip.createdAt ? new Date(slip.createdAt).toLocaleDateString() : '',
+      status: slip.status || 'new', // fallback to 'new' if not present
+    }));
+    res.json({ success: true, payslips: result });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching payslips.' });
   }
 });
