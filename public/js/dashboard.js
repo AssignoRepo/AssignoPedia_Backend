@@ -2383,7 +2383,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const groups = groupLeaveRequestsByOriginal(requests);
     tbody.innerHTML = groups
       .map((group, idx) => {
-        const isMulti = group._group.length > 1;
+        const isMulti = group._isMultiMonth; // Use the new flag instead of just checking length
         const main = group._group[0];
         // Truncate comments if too long
         let commentHtml = '-';
@@ -2426,7 +2426,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             ${
               isMulti
-                ? `<button class="expand-breakdown-btn" onclick="toggleBreakdown(this)">Breakdown</button>`
+               ? `<button class="expand-breakdown-btn" onclick="toggleBreakdown(this)">Show Breakdown</button>`
                 : ""
             }
           </td>
@@ -6430,7 +6430,7 @@ async function loadAttendanceTracker() {
 
 // --- Enhanced: Group and show breakdown for multi-month leave requests ---
 function groupLeaveRequestsByOriginal(requests) {
-  // Group by reason, comments, and consecutive dates (simple heuristic)
+    // Group by reason, comments, and consecutive dates (simple heuristic)
   const groups = [];
   let last = null;
   for (const req of requests.sort((a, b) => new Date(a.fromDate) - new Date(b.fromDate))) {
@@ -6449,7 +6449,26 @@ function groupLeaveRequestsByOriginal(requests) {
       last = req;
     }
   }
-  return groups;
+  
+  // Filter out single-day leaves from showing breakdown
+  return groups.map(group => {
+    // Check if this is actually a multi-day leave that spans multiple months
+    if (group._group.length === 1) {
+      // Single leave request - no breakdown needed
+      group._isMultiMonth = false;
+    } else {
+      // Multiple leave requests - check if they span different months
+      const firstDate = new Date(group._group[0].fromDate);
+      const lastDate = new Date(group._group[group._group.length - 1].toDate);
+      const firstMonth = firstDate.getMonth();
+      const firstYear = firstDate.getFullYear();
+      const lastMonth = lastDate.getMonth();
+      const lastYear = lastDate.getFullYear();
+      
+      group._isMultiMonth = (firstYear !== lastYear) || (firstMonth !== lastMonth);
+    }
+    return group;
+  });
 }
 
 // Add toggle for breakdown
@@ -6458,7 +6477,7 @@ window.toggleBreakdown = function (btn) {
   const next = tr.nextElementSibling;
   if (next && next.classList.contains("breakdown-row")) {
     next.style.display = next.style.display === "none" ? "" : "none";
-    btn.textContent = next.style.display === "none" ? "Breakdown" : "Hide Breakdown";
+   btn.textContent = next.style.display === "none" ? "Show Breakdown" : "Hide Breakdown";
   }
 };
 

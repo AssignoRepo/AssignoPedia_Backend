@@ -765,81 +765,35 @@ app.post(
           originalName: req.file.originalname,
         };
       }
-      // --- New logic: Group all working days in each month into a single leave request ---
-      // 1. Collect all working days (non-Sundays) between start and end, grouped by month
-      let workingDaysByMonth = {}; // { '2025-06': [dates...], '2025-07': [dates...] }
-      let d1 = new Date(start);
-      while (d1 <= end) {
-        if (d1.getDay() !== 0) {
-          // skip Sundays
-          const monthKey = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}`;
-          if (!workingDaysByMonth[monthKey]) workingDaysByMonth[monthKey] = [];
-          workingDaysByMonth[monthKey].push(new Date(d1));
-        }
-        d1.setDate(d1.getDate() + 1);
-      }
-      // 2. For each month, create a single leave request for all working days in that month
-      let responses = [];
-      const paidLeavesAssigned = {}; // Track paid leaves assigned in this request per month
-      let isFirstSegment = true;
-      console.log("workingDaysByMonth->", workingDaysByMonth);
-      for (const monthKey of Object.keys(workingDaysByMonth)) {
-        const daysArr = workingDaysByMonth[monthKey];
-        console.log("daysArr->", daysArr);
-        if (!daysArr.length) continue;
-        const from = daysArr[0];
-        console.log("from->", from);
-        const to = daysArr[daysArr.length - 1];
-        console.log("to->", to);
-        const leaveCount = daysArr.length;
-        // Calculate paid/unpaid for this month
-        const [year, monthStr] = monthKey.split("-");
-        const yearNum = parseInt(year);
-        const monthNum = parseInt(monthStr);
-        const monthStart = new Date(yearNum, monthNum - 1, 1);
-        const monthEndFull = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
-        // Get paid leaves already in DB for this month
-        const existingLeaves = await LeaveRequest.find({
-          employeeId,
-          fromDate: { $gte: monthStart, $lte: monthEndFull },
-          status: { $in: ["Pending", "Approved"] },
-        });
-        let alreadyPaid = 0;
-        existingLeaves.forEach((lr) => {
-          alreadyPaid += lr.paidLeaves || 0;
-        });
-        // Add paid leaves assigned in this request so far for this month
-        alreadyPaid += paidLeavesAssigned[monthKey] || 0;
-        // Assign paid/unpaid
-        let paidLeaves = 0,
-          unpaidLeaves = 0;
-        if (alreadyPaid >= 2) {
-          paidLeaves = 0;
-          unpaidLeaves = leaveCount;
-        } else if (alreadyPaid + leaveCount <= 2) {
-          paidLeaves = leaveCount;
-          unpaidLeaves = 0;
-        } else {
-          paidLeaves = 2 - alreadyPaid;
-          unpaidLeaves = leaveCount - paidLeaves;
-        }
-        // Update the in-memory map
-        paidLeavesAssigned[monthKey] = (paidLeavesAssigned[monthKey] || 0) + paidLeaves;
-        // Save this month's segment as a LeaveRequest
+      // --- Enhanced logic: Only split by month if the leave spans multiple months ---
+      // Check if the leave spans multiple months
+      const startMonth = start.getMonth();
+      const startYear = start.getFullYear();
+      const endMonth = end.getMonth();
+      const endYear = end.getFullYear();
+      const spansMultipleMonths = (startYear !== endYear) || (startMonth !== endMonth);
+      
+      console.log(`Leave request: ${start.toDateString()} to ${end.toDateString()}`);
+      console.log(`Spans multiple months: ${spansMultipleMonths}`);
+      console.log(`Start: ${startMonth + 1}/${startYear}, End: ${endMonth + 1}/${endYear}`);
+      
+      if (!spansMultipleMonths) {
+        // Single month leave - create a single leave request
         const leave = new LeaveRequest({
           employeeId,
           name,
           reason,
           leaveCount,
-          fromDate: from,
-          toDate: to,
+          fromDate: start,
+          toDate: end,
           comments,
-          paidLeaves,
-          unpaidLeaves,
+          paidLeaves: Math.min(leaveCount, 2), // Max 2 paid leaves per month
+          unpaidLeaves: Math.max(0, leaveCount - 2),
           leaveType: "Pending",
-          attachment: attachment && isFirstSegment ? attachment : undefined, // Only attach file to first segment
+          attachment: attachment,
         });
         await leave.save();
+        
         // --- Notification for HR/Admin ---
         const hrRoles = ["hr_admin", "hr_manager", "hr_executive", "hr_recruiter"];
         const hrEmployees = await Employee.find({ role: { $in: hrRoles } }, "employeeId email");
@@ -847,29 +801,30 @@ app.post(
         const allRecipients = [...hrEmployees, ...adminEmployees];
         for (const recipient of allRecipients) {
           const notification = new Notification({
-            message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${from.toDateString()} to ${to.toDateString()}`,
+            message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${start.toDateString()} to ${end.toDateString()}`,
             senderId: employeeId,
             senderName: name,
             recipientId: recipient.employeeId,
             isForAll: false,
-            comments, // <-- add this
-            reason,   // <-- add this
+            comments,
+            reason,
           });
           await notification.save();
           if (recipient.email) {
             await sendNoticeEmail({
               to: recipient.email,
               subject: `New Leave Request - ${name}`,
-              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
             });
           }
         }
+        
         // --- Notify Team Leader if not already notified ---
         const team = await Team.findOne({ team_members: employeeId });
         const teamLeaderId = team?.team_leader;
         if (teamLeaderId && !allRecipients.some(r => r.employeeId === teamLeaderId)) {
           const notification = new Notification({
-            message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${from.toDateString()} to ${to.toDateString()}`,
+            message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${start.toDateString()} to ${end.toDateString()}`,
             senderId: employeeId,
             senderName: name,
             recipientId: teamLeaderId,
@@ -883,33 +838,183 @@ app.post(
             await sendNoticeEmail({
               to: teamLeader.email,
               subject: `New Leave Request - ${name}`,
-              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
             });
           }
         }
-        responses.push({
-          month: monthNum,
-          year: yearNum,
-          paidLeaves,
-          unpaidLeaves,
-          days: leaveCount,
-          fromDate: from,
-          toDate: to,
+        
+        res.json({
+          success: true,
+          message: "Leave request submitted successfully.",
+          breakdown: [{
+            month: startMonth + 1,
+            year: startYear,
+            paidLeaves: Math.min(leaveCount, 2),
+            unpaidLeaves: Math.max(0, leaveCount - 2),
+            days: leaveCount,
+            fromDate: start,
+            toDate: end,
+          }],
         });
-        isFirstSegment = false;
-        if (Array.isArray(leave.leaveType)) {
-          leave.dnplCount = leave.leaveType.filter(type => type === "DNPL").length;
-          await leave.save();
-        } else {
-          leave.dnplCount = 0;
-          await leave.save();
+      } else {
+        // Multi-month leave - split by month
+        // 1. Collect all working days (non-Sundays) between start and end, grouped by month
+        let workingDaysByMonth = {}; // { '2025-06': [dates...], '2025-07': [dates...] }
+        let d1 = new Date(start);
+        while (d1 <= end) {
+          if (d1.getDay() !== 0) {
+            // skip Sundays
+            const monthKey = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}`;
+            if (!workingDaysByMonth[monthKey]) workingDaysByMonth[monthKey] = [];
+            workingDaysByMonth[monthKey].push(new Date(d1));
+          }
+          d1.setDate(d1.getDate() + 1);
         }
+        
+        // 2. For each month, create a single leave request for all working days in that month
+        let responses = [];
+        const paidLeavesAssigned = {}; // Track paid leaves assigned in this request per month
+        let isFirstSegment = true;
+        console.log("workingDaysByMonth->", workingDaysByMonth);
+        
+        for (const monthKey of Object.keys(workingDaysByMonth)) {
+          const daysArr = workingDaysByMonth[monthKey];
+          console.log("daysArr->", daysArr);
+          if (!daysArr.length) continue;
+          const from = daysArr[0];
+          console.log("from->", from);
+          const to = daysArr[daysArr.length - 1];
+          console.log("to->", to);
+          const leaveCount = daysArr.length;
+          
+          // Calculate paid/unpaid for this month
+          const [year, monthStr] = monthKey.split("-");
+          const yearNum = parseInt(year);
+          const monthNum = parseInt(monthStr);
+          const monthStart = new Date(yearNum, monthNum - 1, 1);
+          const monthEndFull = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+          
+          // Get paid leaves already in DB for this month
+          const existingLeaves = await LeaveRequest.find({
+            employeeId,
+            fromDate: { $gte: monthStart, $lte: monthEndFull },
+            status: { $in: ["Pending", "Approved"] },
+          });
+          let alreadyPaid = 0;
+          existingLeaves.forEach((lr) => {
+            alreadyPaid += lr.paidLeaves || 0;
+          });
+          
+          // Add paid leaves assigned in this request so far for this month
+          alreadyPaid += paidLeavesAssigned[monthKey] || 0;
+          
+          // Assign paid/unpaid
+          let paidLeaves = 0,
+            unpaidLeaves = 0;
+          if (alreadyPaid >= 2) {
+            paidLeaves = 0;
+            unpaidLeaves = leaveCount;
+          } else if (alreadyPaid + leaveCount <= 2) {
+            paidLeaves = leaveCount;
+            unpaidLeaves = 0;
+          } else {
+            paidLeaves = 2 - alreadyPaid;
+            unpaidLeaves = leaveCount - paidLeaves;
+          }
+          
+          // Update the in-memory map
+          paidLeavesAssigned[monthKey] = (paidLeavesAssigned[monthKey] || 0) + paidLeaves;
+          
+          // Save this month's segment as a LeaveRequest
+          const leave = new LeaveRequest({
+            employeeId,
+            name,
+            reason,
+            leaveCount,
+            fromDate: from,
+            toDate: to,
+            comments,
+            paidLeaves,
+            unpaidLeaves,
+            leaveType: "Pending",
+            attachment: attachment && isFirstSegment ? attachment : undefined, // Only attach file to first segment
+          });
+          await leave.save();
+          
+          // --- Notification for HR/Admin ---
+          const hrRoles = ["hr_admin", "hr_manager", "hr_executive", "hr_recruiter"];
+          const hrEmployees = await Employee.find({ role: { $in: hrRoles } }, "employeeId email");
+          const adminEmployees = await Employee.find({ role: "Admin" }, "employeeId email");
+          const allRecipients = [...hrEmployees, ...adminEmployees];
+          for (const recipient of allRecipients) {
+            const notification = new Notification({
+              message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${from.toDateString()} to ${to.toDateString()}`,
+              senderId: employeeId,
+              senderName: name,
+              recipientId: recipient.employeeId,
+              isForAll: false,
+              comments,
+              reason,
+            });
+            await notification.save();
+            if (recipient.email) {
+              await sendNoticeEmail({
+                to: recipient.email,
+                subject: `New Leave Request - ${name}`,
+                text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+              });
+            }
+          }
+          
+          // --- Notify Team Leader if not already notified ---
+          const team = await Team.findOne({ team_members: employeeId });
+          const teamLeaderId = team?.team_leader;
+          if (teamLeaderId && !allRecipients.some(r => r.employeeId === teamLeaderId)) {
+            const notification = new Notification({
+              message: `New leave request from ${name} (${employeeId}) for ${leaveCount} days from ${from.toDateString()} to ${to.toDateString()}`,
+              senderId: employeeId,
+              senderName: name,
+              recipientId: teamLeaderId,
+              isForAll: false,
+              comments,
+              reason,
+            });
+            await notification.save();
+            const teamLeader = await Employee.findOne({ employeeId: teamLeaderId });
+            if (teamLeader?.email) {
+              await sendNoticeEmail({
+                to: teamLeader.email,
+                subject: `New Leave Request - ${name}`,
+                text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+              });
+            }
+          }
+          
+          responses.push({
+            month: monthNum,
+            year: yearNum,
+            paidLeaves,
+            unpaidLeaves,
+            days: leaveCount,
+            fromDate: from,
+            toDate: to,
+          });
+          isFirstSegment = false;
+          if (Array.isArray(leave.leaveType)) {
+            leave.dnplCount = leave.leaveType.filter(type => type === "DNPL").length;
+            await leave.save();
+          } else {
+            leave.dnplCount = 0;
+            await leave.save();
+          }
+        }
+        
+        res.json({
+          success: true,
+          message: "Leave request submitted and split by month.",
+          breakdown: responses,
+        });
       }
-      res.json({
-        success: true,
-        message: "Leave request submitted and split by month.",
-        breakdown: responses,
-      });
     } catch (err) {
       if (err.code === "LIMIT_FILE_SIZE") {
         return res
