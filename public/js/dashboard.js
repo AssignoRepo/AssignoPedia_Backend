@@ -1616,68 +1616,70 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadLeaveRequest() {
     setActive("btn-leave");
     mainContent.innerHTML = `
-      <div class="admin-content-section leave-request-section" id="leaveRequestSection">
-        <h2>Leave Requests</h2>
-        <form id="leaveForm" class="section-form add-employee-flex-row">
-          <div class="form-row" style="flex-wrap: wrap; gap: 15px;">
-            <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label>Reason</label>
-              <select name="Reason" required id="ReasonSelect" class="reason-select">
-                <option value="">Select a reason</option>
-                <option value="Medical Reason">Medical Reason</option>
-                <option value="Personal Reason">Personal Reason</option>
-                <option value="Emergency Reason">Emergency Reason</option>
-                <option value="Other Reason">Other Reason</option>
-              </select>
-            </div>
-            <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label>Leave Count</label>
-              <div class="leave-count-container">
-                <input type="number" name="leaveCount" min="1" max="20" value="" required class="leave-count-input" placeholder="Enter number of days (1-20)" id="leaveCountInput">
+      <div class="leave-request-wrapper">
+        <div class="leave-request-card">
+          <h2>📄 Leave Requests</h2>
+          <form id="leaveForm" class="leave-request-form">
+            <div class="leave-form-row">
+              <div class="leave-form-group">
+                <label>Reason</label>
+                <select name="Reason" required id="ReasonSelect" class="leave-select">
+                  <option value="">Select a reason</option>
+                  <option value="Medical Reason">Medical Reason</option>
+                  <option value="Personal Reason">Personal Reason</option>
+                  <option value="Emergency Reason">Emergency Reason</option>
+                  <option value="Other Reason">Other Reason</option>
+                </select>
               </div>
-            </div>
-          </div>
-          <div id="reasonCommentBox" class="form-row" style="display: none; margin-top: 10px;">
-            <div class="form-group" style="flex: 1;">
-              <label>Additional Details</label>
-              <textarea name="reasonComment" rows="3" placeholder="Please provide additional details about your reason..." class="others-textarea" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.3s ease; resize: vertical; min-height: 100px; background: #f8f9fa;"></textarea>
-              <div class="attachment-section">
-                <button type="button" class="attachment-btn" id="attachmentBtn">
-                  <i class="fas fa-paperclip"></i>
-                  Attach Image
-                </button>
-                <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-                <div class="attachment-preview" id="attachmentPreview">
-                  <img src="" alt="Preview" class="preview-image" id="previewImage">
-                  <button type="button" class="remove-attachment" id="removeAttachment">
-                    <i class="fas fa-times"></i>
-                    Remove Image
-                  </button>
+              <div class="leave-form-group">
+                <label>Leave Count</label>
+                <div class="leave-count-container">
+                  <input type="number" name="leaveCount" min="1" max="20" value="" required class="leave-input" placeholder="Enter number of days (1-20)" id="leaveCountInput">
                 </div>
               </div>
             </div>
-          </div>
-          <div id="singleDateSection" class="form-row" style="flex-wrap: wrap; gap: 15px; margin-top: 15px; display: none;">
-            <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label>Select Date</label>
-              <input type="date" name="singleDate" class="date-input" placeholder="Select date">
+            <div id="reasonCommentBox" class="leave-form-group" style="display: none; margin-top: 10px;">
+              <div class="leave-form-group">
+                <label>Additional Details</label>
+                <textarea name="reasonComment" rows="3" placeholder="Please provide additional details about your reason..." class="others-textarea" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.3s ease; resize: vertical; min-height: 100px; background: #f8f9fa;"></textarea>
+                <div class="attachment-section">
+                  <button type="button" class="attachment-btn" id="attachmentBtn">
+                    <i class="fas fa-paperclip"></i>
+                    Attach Image
+                  </button>
+                  <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+                  <div class="attachment-preview" id="attachmentPreview">
+                    <img src="" alt="Preview" class="preview-image" id="previewImage">
+                    <button type="button" class="remove-attachment" id="removeAttachment">
+                      <i class="fas fa-times"></i>
+                      Remove Image
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div id="dateRangeSection" class="form-row" style="flex-wrap: wrap; gap: 15px; margin-top: 15px; display: none;">
-            <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label>From</label>
-              <input type="date" name="fromDate" class="date-input" placeholder="Select start date">
+            <div id="singleDateSection" class="leave-form-row" style="flex-wrap: wrap; gap: 15px; margin-top: 15px; display: none;">
+              <div class="leave-form-group" style="flex: 1; min-width: 250px;">
+                <label>Select Date</label>
+                <input type="date" name="singleDate" class="date-input" placeholder="Select date">
+              </div>
             </div>
-            <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label>To</label>
-              <input type="date" name="toDate" class="date-input" placeholder="Select end date">
+            <div id="dateRangeSection" class="leave-form-row" style="flex-wrap: wrap; gap: 15px; margin-top: 15px; display: none;">
+              <div class="leave-form-group" style="flex: 1; min-width: 250px;">
+                <label>From</label>
+                <input type="date" name="fromDate" class="date-input" placeholder="Select start date">
+              </div>
+              <div class="leave-form-group" style="flex: 1; min-width: 250px;">
+                <label>To</label>
+                <input type="date" name="toDate" class="date-input" placeholder="Select end date">
+              </div>
             </div>
-          </div>
-          <div class="button-container">
-            <button type="button" class="cancel-btn" id="cancelLeaveBtn">Cancel</button>
-            <button type="submit" class="add-employee-btn">Submit Request</button>
-          </div>
-        </form>
+            <div class="leave-button-row">
+              <button type="button" class="leave-cancel-btn" id="cancelLeaveBtn">Cancel</button>
+              <button type="submit" class="leave-submit-btn"style="flex:0.3;">Submit Request</button>
+            </div>
+          </form>
+        </div>
       </div>
     `;
 
@@ -4908,57 +4910,67 @@ function loadWFHRequest() {
   mainContent.innerHTML = `
       <div class="wfh-scroll-wrapper">
         <div class="wfh-card">
-          <h2><i class="fas fa-laptop-house"></i> Work From Home Request</h2>
-          <div class="form-group">
-            <label><i class="fas fa-id-badge"></i> Employee ID:</label>
-            <span class="readonly">${employee?.employeeId || ""}</span>
+          <h2>🏠 Work From Home Request</h2>
+          
+          <!-- Top Row - Employee Information -->
+          <div class="wfh-form-row">
+            <div class="wfh-form-group">
+              <label>👤 Employee ID:</label>
+              <span class="readonly">${employee?.employeeId || ""}</span>
+            </div>
+            <div class="wfh-form-group">
+              <label>😊 Name:</label>
+              <span class="readonly">${employee?.name || ""}</span>
+            </div>
+            <div class="wfh-form-group">
+              <label>🛡️ Designation:</label>
+              <span class="readonly">${employee?.role || ""}</span>
+            </div>
           </div>
-          <div class="form-group">
-            <label><i class="fas fa-user"></i> Name:</label>
-            <span class="readonly">${employee?.name || ""}</span>
-          </div>
-          <div class="form-group">
-            <label><i class="fas fa-briefcase"></i> Designation:</label>
-            <span class="readonly">${employee?.role || ""}</span>
-          </div>
-          <div class="form-group">
-            <label for="reason"><i class="fas fa-comment-dots"></i> WFH Reason:</label>
+          
+          <!-- Middle Section - Text Areas -->
+          <div class="wfh-form-group">
+            <label for="reason">📄 WFH Reason:</label>
             <textarea id="reason" placeholder="Enter reason for WFH request..."></textarea>
           </div>
-          <div class="form-group">
-            <label for="additionalReason"><i class="fas fa-info-circle"></i> Additional Details:</label>
+          <div class="wfh-form-group">
+            <label for="additionalReason">💬 Additional Details:</label>
             <textarea id="additionalReason" placeholder="Enter any additional details or comments..."></textarea>
           </div>
-          <div class="form-group">
-            <label for="count"><i class="fas fa-list-ol"></i> Count (Days):</label>
-            <input type="number" id="count" placeholder="Enter number of days">
-          </div>
-          <div class="form-group" id="calendar-container"></div>
           
-          <!-- Image Attachment Section -->
-          <div class="form-group">
-            <label for="attachment"><i class="fas fa-paperclip"></i> Attach Image (Optional):</label>
-            <div class="attachment-section">
-              <input type="file" id="attachment" accept="image/*" style="display: none;">
-              <button type="button" class="attachment-btn" id="attachmentBtn">
-                <i class="fas fa-upload"></i> Choose Image
-              </button>
-              <div class="attachment-preview" id="attachmentPreview" style="display: none;">
-                <img id="previewImage" class="preview-image" alt="Preview">
-                <button type="button" class="remove-attachment" id="removeAttachment">
-                  <i class="fas fa-times"></i>
+          <!-- Bottom Row - Count and Attachment -->
+          <div class="wfh-form-row">
+            <div class="wfh-form-group">
+              <label for="count">📅  Count (Days):</label>
+              <input type="number" id="count" placeholder="Enter number of days">
+            </div>
+            <div class="wfh-form-group">
+              <label for="attachment">📎 Attach Image (Optional):</label>
+              <div class="attachment-section">
+                <input type="file" id="attachment" accept="image/*" style="display: none;">
+                <button type="button" class="attachment-btn" id="attachmentBtn">
+                  <i class="fas fa-upload"></i> Choose Image
                 </button>
+                <div class="attachment-preview" id="attachmentPreview" style="display: none;">
+                  <img id="previewImage" class="preview-image" alt="Preview">
+                  <button type="button" class="remove-attachment" id="removeAttachment">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
           
+          <!-- Calendar Container -->
+          <div class="wfh-form-group" id="calendar-container"></div>
+          
           <!-- Button Group -->
           <div class="button-group" style="display: flex; gap: 15px; margin-top: 20px;">
             <button class="submit-btn" id="wfhSubmitBtn" style="flex: 1;">
-              <i class="fas fa-paper-plane"></i> Submit
+            ✅ Submit
             </button>
             <button class="cancel-btn" id="wfhCancelBtn" style="flex: 1;">
-              <i class="fas fa-times"></i> Cancel
+             ❌ Cancel
             </button>
           </div>
         </div>
@@ -4971,7 +4983,7 @@ function loadWFHRequest() {
 
   function createDateInput(id, labelText, iconClass) {
     const wrapper = document.createElement("div");
-    wrapper.classList.add("form-group");
+    wrapper.classList.add("wfh-form-group");
     const label = document.createElement("label");
     label.setAttribute("for", id);
     label.innerHTML = `<i class="${iconClass}"></i> ${labelText}`;
@@ -4989,13 +5001,19 @@ function loadWFHRequest() {
     calendarContainer.innerHTML = "";
     if (!isNaN(count)) {
       if (count <= 1) {
-        const singleDate = createDateInput("calendar", "Select Date:", "fas fa-calendar-alt");
+        const singleDate = createDateInput("calendar", "Select Date:", "fas fa-calendar");
         calendarContainer.appendChild(singleDate);
       } else {
-        const fromDate = createDateInput("fromDate", "From Date:", "fas fa-calendar-day");
-        const toDate = createDateInput("toDate", "To Date:", "fas fa-calendar-check");
-        calendarContainer.appendChild(fromDate);
-        calendarContainer.appendChild(toDate);
+        // Create a row for date range
+        const dateRow = document.createElement("div");
+        dateRow.classList.add("wfh-form-row");
+        
+        const fromDate = createDateInput("fromDate", "From Date:", "fas fa-calendar");
+        const toDate = createDateInput("toDate", "To Date:", "fas fa-calendar");
+        
+        dateRow.appendChild(fromDate);
+        dateRow.appendChild(toDate);
+        calendarContainer.appendChild(dateRow);
       }
     }
   }
