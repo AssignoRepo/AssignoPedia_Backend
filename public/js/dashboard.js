@@ -1,4 +1,4 @@
-import socialMediaService from "./social-media-service.js";
+// import socialMediaService from "./social-media-service.js";
 
 // Global function to handle Manage Account button click
 // function handleManageAccountClick() {
@@ -613,6 +613,454 @@ function setLogoutListener() {
   }
 }
 
+// Blog Manager section loader
+async function loadBlogManager() {
+  // Role check: only admin and hr_recruiter
+  const employee = JSON.parse(localStorage.getItem("employee"));
+  if (!employee || (employee.role !== "admin" && employee.role !== "hr_recruiter")) {
+    alert("Access denied. Only admin and HR Recruiter can access Blog Manager.");
+    return;
+  }
+  // On mobile, close sidebar when Blog Manager is loaded
+  if (window.innerWidth <= 600) {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.classList.remove('show');
+  }
+  setActive("btn-blog-manager");
+  const mainContent = document.getElementById("mainContent");
+
+  mainContent.innerHTML = `
+    <div class="container" style="max-width: 800px; margin: 50px auto;">
+      <div class="card shadow-sm">
+        <div class="card-header" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;">
+          <h5 class="mb-0">📝 Post a New Blog</h5>
+        </div>
+        <div class="card-body">
+          <form id="blogPostForm" enctype="multipart/form-data" autocomplete="off">
+            <div class="mb-3">
+              <label for="title" class="form-label">Blog Title <span class="text-danger">*</span></label>
+              <input type="text" name="title" id="title" class="form-control" placeholder="Enter blog title" required>
+            </div>
+            <div class="mb-3">
+              <label for="excerpt" class="form-label">Excerpt/Summary <span class="text-danger">*</span></label>
+              <textarea name="excerpt" id="excerpt" class="form-control" rows="3" placeholder="Write a brief summary of your blog post (max 200 characters)..." maxlength="200" required></textarea>
+              <small class="form-text text-muted">This will appear as a preview on the blog listing page</small>
+            </div>
+            <div class="mb-3">
+              <label for="content" class="form-label">Content <span class="text-danger">*</span></label>
+              <textarea name="content" id="editor"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="category" class="form-label">Category</label>
+                  <select name="category" id="category" class="form-control">
+                    <option value="Academic">Academic</option>
+                    <option value="Research">Research</option>
+                    <option value="Writing">Writing</option>
+                    <option value="Study Tips">Study Tips</option>
+                    <option value="General">General</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="tags" class="form-label">Tags (comma-separated)</label>
+                  <input type="text" name="tags" id="tags" class="form-control" placeholder="e.g., education, writing, tips">
+                </div>
+              </div>
+            </div>
+            <div class="text-end">
+              <button type="button" class="btn btn-success" id="publishBlogBtn">
+                <i class="fas fa-paper-plane"></i> Publish Blog
+              </button>
+            </div>
+            <div id="blogFormMsg" class="mt-3"></div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Blog Management Section -->
+      <div class="card shadow-sm mt-4">
+        <div class="card-header" style="background:linear-gradient(135deg,#764ba2,#667eea);color:#fff;">
+          <h5 class="mb-0">📋 Manage Blog Posts</h5>
+        </div>
+        <div class="card-body">
+          <div id="blogList">
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Custom Upload Adapter for CKEditor
+  class CustomUploadAdapter {
+    constructor(loader) {
+      this.loader = loader;
+      console.log('CustomUploadAdapter created');
+    }
+    upload() {
+      console.log('Starting upload...');
+      return this.loader.file.then(file => {
+        console.log('File to upload:', file.name, file.type, file.size);
+        const formData = new FormData();
+        formData.append('upload', file);
+        return fetch('/api/blog/upload-image', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('jwtToken')}`
+          },
+          body: formData
+        })
+        .then(response => {
+          console.log('Upload response status:', response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log('Upload response data:', data);
+          if (data.url) {
+            return { default: data.url };
+          } else {
+            throw new Error('Upload failed: ' + (data.error?.message || 'Unknown error'));
+          }
+        })
+        .catch(error => {
+          console.error('Upload error:', error);
+          throw error;
+        });
+      });
+    }
+    abort() {
+      console.log('Upload aborted');
+    }
+  }
+  function CustomUploadAdapterPlugin(editor) {
+    editor.plugins.get('FileRepository').createUploadAdapter = (loader) => {
+      return new CustomUploadAdapter(loader);
+    };
+  }
+
+  // Load CKEditor Classic build (no retry, no super-build)
+  if (typeof ClassicEditor !== 'undefined') {
+    ClassicEditor
+      .create(document.querySelector('#editor'), {
+        toolbar: [
+          'heading', '|',
+          'bold', 'italic', '|',
+          'bulletedList', 'numberedList', '|',
+          'link', 'imageUpload', 'blockQuote', '|',
+          'undo', 'redo'
+        ],
+        image: {
+          toolbar: [
+            'imageTextAlternative', '|',
+            'imageStyle:alignLeft', 'imageStyle:alignCenter', 'imageStyle:alignRight'
+          ],
+          styles: [
+            'alignLeft',
+            'alignCenter',
+            'alignRight'
+          ]
+        },
+        removePlugins: ['CKFinderUploadAdapter', 'CKFinder', 'EasyImage'],
+        extraPlugins: [CustomUploadAdapterPlugin]
+      })
+      .then(editor => {
+        window._blogEditor = editor;
+        console.log('CKEditor Classic loaded');
+        // Enhanced image selection with caption toolbar
+        editor.editing.view.document.on('click', (evt, data) => {
+          const domTarget = data.domTarget;
+          if (domTarget && domTarget.tagName === 'IMG') {
+            // Visual feedback for selected image
+            domTarget.style.outline = '2px solid #007cba';
+            domTarget.style.resize = 'both';
+            domTarget.style.overflow = 'auto';
+            domTarget.setAttribute('draggable', 'true');
+            
+            // Add caption button to image toolbar
+            addCaptionButtonToImageToolbar(editor, domTarget);
+                    }
+        });
+        
+        // Function to add caption button to image toolbar
+        function addCaptionButtonToImageToolbar(editor, imageElement) {
+          // Remove any existing caption buttons
+          const existingButtons = document.querySelectorAll('.image-caption-btn');
+          existingButtons.forEach(btn => btn.remove());
+          
+          // Create caption button
+          const captionButton = document.createElement('button');
+          captionButton.className = 'image-caption-btn';
+          captionButton.innerHTML = '📝 Caption';
+          captionButton.style.cssText = `
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 8px;
+            font-size: 11px;
+            font-weight: 500;
+          `;
+          
+          captionButton.addEventListener('click', () => {
+            // Get the image model element
+            const viewElement = editor.editing.view.domConverter.domToView(imageElement);
+            const modelElement = editor.editing.mapper.toModelElement(viewElement);
+            
+            if (modelElement) {
+              // Check if image already has a caption
+              const imageBlock = modelElement.parent;
+              const nextElement = imageBlock.nextSibling;
+              
+              if (nextElement && nextElement.name === 'paragraph' && 
+                  nextElement.getChild(0).data.includes('📝 Caption:')) {
+                // Caption already exists, focus on it
+                editor.model.change(writer => {
+                  writer.setSelection(nextElement, 'in');
+                });
+              } else {
+                // Add new caption
+                editor.model.change(writer => {
+                  const captionParagraph = writer.createElement('paragraph');
+                  const captionText = writer.createText('📝 Caption: Enter your caption here...');
+                  writer.append(captionText, captionParagraph);
+                  writer.insert(captionParagraph, imageBlock, 'after');
+                  writer.setSelection(captionParagraph, 'in');
+                });
+              }
+            }
+          });
+          
+          // Find the image toolbar and add the button
+          setTimeout(() => {
+            const imageToolbar = document.querySelector('.ck-image__toolbar');
+            if (imageToolbar) {
+              imageToolbar.appendChild(captionButton);
+            } else {
+              // If image toolbar doesn't exist, create one
+              const imageContainer = imageElement.closest('.ck-widget');
+              if (imageContainer) {
+                let toolbar = imageContainer.querySelector('.ck-image__toolbar');
+                if (!toolbar) {
+                  toolbar = document.createElement('div');
+                  toolbar.className = 'ck-image__toolbar';
+                  toolbar.style.cssText = `
+                    position: absolute;
+                    top: -40px;
+                    left: 0;
+                    background: white;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                    padding: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    z-index: 1000;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                  `;
+                  imageContainer.style.position = 'relative';
+                  imageContainer.appendChild(toolbar);
+                }
+                toolbar.appendChild(captionButton);
+              }
+            }
+          }, 100);
+        }
+        
+        // Remove any existing standalone caption buttons from main toolbar
+        const existingMainButtons = document.querySelectorAll('.main-caption-btn');
+        existingMainButtons.forEach(btn => btn.remove());
+      })
+      .catch(error => {
+        console.error('CKEditor error:', error);
+      });
+  } else {
+    console.error('CKEditor ClassicEditor is not loaded.');
+  }
+
+  // Attach submit handler
+  setTimeout(() => {
+    document.getElementById('publishBlogBtn').onclick = async function() {
+      const form = document.getElementById('blogPostForm');
+      const msgDiv = document.getElementById('blogFormMsg');
+      msgDiv.innerHTML = '';
+      
+      const title = form.title.value.trim();
+      const excerpt = form.excerpt.value.trim();
+      const content = window._blogEditor ? window._blogEditor.getData() : '';
+      const category = form.category.value;
+      const tags = form.tags.value.trim();
+      
+      if (!title || !excerpt || !content) {
+        msgDiv.innerHTML = '<div class="alert alert-danger">Please fill in all required fields.</div>';
+        return;
+      }
+      
+      // Fix form validation by removing required attribute from hidden textarea
+      const contentTextarea = document.querySelector('#editor');
+      if (contentTextarea) {
+        contentTextarea.removeAttribute('required');
+      }
+      
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('excerpt', excerpt);
+      formData.append('content', content);
+      formData.append('category', category);
+      if (tags) formData.append('tags', tags);
+      
+      const token = localStorage.getItem('jwtToken');
+      try {
+        const response = await fetch('/api/blog', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const data = await response.json();
+        console.log('Blog creation response:', data);
+        if (data.success) {
+          msgDiv.innerHTML = '<div class="alert alert-success">Blog post published successfully!</div>';
+          form.reset();
+          if (window._blogEditor) window._blogEditor.setData('');
+          // Refresh the blog list
+          console.log('Refreshing blog list...');
+          loadBlogList();
+        } else {
+          msgDiv.innerHTML = `<div class="alert alert-danger">${data.error || 'Failed to publish blog post.'}</div>`;
+        }
+      } catch (err) {
+        msgDiv.innerHTML = '<div class="alert alert-danger">Error publishing blog post. Please try again.</div>';
+      }
+    };
+  }, 400);
+
+  // Load blog list
+  loadBlogList();
+}
+
+// Function to load and display blog posts
+async function loadBlogList() {
+  const blogListDiv = document.getElementById('blogList');
+  if (!blogListDiv) return;
+
+  try {
+    const token = localStorage.getItem('jwtToken');
+    console.log('Loading blogs with token:', token ? 'Token exists' : 'No token');
+    
+    const response = await fetch('/api/blog/admin/all', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      console.error('Blog API response not ok:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      blogListDiv.innerHTML = '<div class="alert alert-danger">Failed to load blog posts. Check console for details.</div>';
+      return;
+    }
+    
+    const blogs = await response.json();
+    console.log('Loaded blogs:', blogs);
+
+    if (blogs.length === 0) {
+      blogListDiv.innerHTML = '<div class="text-center text-muted">No blog posts found.</div>';
+      return;
+    }
+
+    blogListDiv.innerHTML = `
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Author</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${blogs.map(blog => `
+              <tr>
+                <td>
+                  <strong>${blog.title}</strong>
+                  <br><small class="text-muted">${blog.excerpt.substring(0, 50)}...</small>
+                </td>
+                <td><span class="badge bg-primary">${blog.category}</span></td>
+                <td>${blog.author ? `${blog.author.firstName || ''} ${blog.author.lastName || ''}`.trim() || blog.author.employeeId : 'Unknown'}</td>
+                <td>
+                  <span class="badge ${blog.status === 'published' ? 'bg-success' : 'bg-warning'}">
+                    ${blog.status}
+                  </span>
+                </td>
+                <td>${new Date(blog.createdAt).toLocaleDateString()}</td>
+                <td>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button class="btn btn-outline-primary" onclick="editBlog('${blog._id}')">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="deleteBlog('${blog._id}')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (error) {
+    console.error('Error loading blogs:', error);
+    blogListDiv.innerHTML = '<div class="alert alert-danger">Failed to load blog posts.</div>';
+  }
+}
+
+// Function to delete blog post
+async function deleteBlog(blogId) {
+  if (!confirm('Are you sure you want to delete this blog post?')) return;
+
+  try {
+    const token = localStorage.getItem('jwtToken');
+    const response = await fetch(`/api/blog/${blogId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await response.json();
+
+    if (data.success) {
+      alert('Blog post deleted successfully!');
+      loadBlogList();
+    } else {
+      alert('Failed to delete blog post.');
+    }
+  } catch (error) {
+    console.error('Error deleting blog:', error);
+    alert('An error occurred while deleting the blog post.');
+  }
+}
+
+// Function to edit blog post (placeholder for future implementation)
+function editBlog(blogId) {
+  alert('Edit functionality will be implemented soon!');
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("btn-blog-manager")) {
+    document.getElementById("btn-blog-manager").addEventListener("click", loadBlogManager);
+  }
+});
+
+
 document.addEventListener("DOMContentLoaded", () => {
   mainContent = document.getElementById("mainContent");
 
@@ -784,6 +1232,31 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // Add Blog Manager button for admin
+    if (!document.getElementById("btn-blog-manager")) {
+      const blogManagerBtn = document.createElement("button");
+      blogManagerBtn.id = "btn-blog-manager";
+      blogManagerBtn.className = "sidebar-btn";
+      blogManagerBtn.innerHTML = '<i class="fas fa-blog"></i> Blog Manager';
+      // Insert before Team Management if exists, else before stats
+      const teamMgmtBtn = document.getElementById("btn-team-management");
+      const statsBtn = document.getElementById("btn-stats");
+      if (teamMgmtBtn) {
+        sidebarNav.insertBefore(blogManagerBtn, teamMgmtBtn);
+      } else if (statsBtn) {
+        sidebarNav.insertBefore(blogManagerBtn, statsBtn);
+      } else {
+        sidebarNav.appendChild(blogManagerBtn);
+      }
+      blogManagerBtn.addEventListener("click", () => {
+        loadBlogManager();
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("show");
+          document.getElementById("sidebarOverlay").classList.remove("active");
+        }
+      });
+    }
+
   } else if (isHRRole) {
     // HR Recruiter: Show HR features
     document.getElementById("btn-add-employee").style.display = "";
@@ -922,6 +1395,31 @@ document.addEventListener("DOMContentLoaded", () => {
       teamMgmtBtn.addEventListener("click", () => {
         setActive("btn-team-management");
         loadTeamManagement();
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("show");
+          document.getElementById("sidebarOverlay").classList.remove("active");
+        }
+      });
+    }
+
+    // Add Blog Manager button for hr_recruiter only
+    if (employee.role === "hr_recruiter" && !document.getElementById("btn-blog-manager")) {
+      const blogManagerBtn = document.createElement("button");
+      blogManagerBtn.id = "btn-blog-manager";
+      blogManagerBtn.className = "sidebar-btn";
+      blogManagerBtn.innerHTML = '<i class="fas fa-blog"></i> Blog Manager';
+      // Insert before Team Management if exists, else before stats
+      const teamMgmtBtn = document.getElementById("btn-team-management");
+      const statsBtn = document.getElementById("btn-stats");
+      if (teamMgmtBtn) {
+        sidebarNav.insertBefore(blogManagerBtn, teamMgmtBtn);
+      } else if (statsBtn) {
+        sidebarNav.insertBefore(blogManagerBtn, statsBtn);
+      } else {
+        sidebarNav.appendChild(blogManagerBtn);
+      }
+      blogManagerBtn.addEventListener("click", () => {
+        loadBlogManager();
         if (window.innerWidth <= 768) {
           document.getElementById("sidebar").classList.remove("show");
           document.getElementById("sidebarOverlay").classList.remove("active");
@@ -2761,58 +3259,6 @@ document.addEventListener("DOMContentLoaded", () => {
   //         alert("Error generating pay slip preview.");
   //       }
   //     };
-      
-  //   }
-
-  //   function showPaySlipModal(slipData, isPreviewOnly) {
-  //     // Remove any existing modal before inserting a new one
-  //     const existingModal = document.getElementById('paySlipModal');
-  //     if (existingModal) existingModal.remove();
-  //   const paySlipModalHTML = `
-  //       <div id="paySlipModal" class="modal-overlay" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:9999;justify-content:center;align-items:center;">
-  //       <div class="modal-content" style="background:#fff;border-radius:12px;max-width:900px;width:98vw;max-height:95vh;overflow:auto;box-shadow:0 4px 32px rgba(0,0,0,0.18);padding:0;position:relative;">
-  //         <div id="paySlipPreviewContainer"></div>
-  //         <div style="display:flex;justify-content:flex-end;gap:1rem;padding:18px 32px 18px 0;background:#faf9fd;border-top:1px solid #eee;">
-  //           <button id="cancelPaySlipModalBtn" class="cancel-btn" style="padding:10px 28px;font-size:1.1em;">Cancel</button>
-  //           <button id="savePaySlipModalBtn" class="generate-btn" style="padding:10px 28px;font-size:1.1em;">Save</button>
-  //           ${slipData.slipId ? `<a href="/api/payslip/download/${slipData.slipId}" target="_blank" class="download-btn" style="padding:10px 28px;font-size:1.1em;background:#43cea2;color:#fff;border:none;border-radius:6px;text-decoration:none;">Download PDF</a>` : ''}
-  //         </div>
-  //       </div>
-  //     </div>
-  //   `;
-  //   document.body.insertAdjacentHTML('beforeend', paySlipModalHTML);
-  //     // Render the pay slip preview using slipData
-  //     const container = document.getElementById('paySlipPreviewContainer');
-  //     if (!container) return;
-  //     container.innerHTML = renderPaySlipHTML(slipData, isPreviewOnly);
-  //     // Add swipe/scroll hint for mobile
-  //     if (window.innerWidth <= 600) {
-  //       const hint = document.createElement('div');
-  //       hint.className = 'swipe-hint';
-  //       hint.innerHTML = '<span class="swipe-icon"></span> Swipe to see full pay slip';
-  //       container.parentNode.appendChild(hint);
-  //     }
-  //     // Attach save handler only if not already attached
-  //     const saveBtn = document.getElementById('savePaySlipModalBtn');
-  //     saveBtn.onclick = async function() {
-  //       // Before sending, update slipData with edited values
-  //       if (isPreviewOnly) {
-  //         const totalDedInput = document.getElementById('editTotalDeductions');
-  //         const netPayInput = document.getElementById('editNetPay');
-  //         if (totalDedInput && !isNaN(+totalDedInput.value)) {
-  //           slipData.deductions = slipData.deductions || {};
-  //           slipData.deductions.totalDeductions = +totalDedInput.value;
-  //         }
-  //         if (netPayInput && !isNaN(+netPayInput.value)) {
-  //           slipData.netPay = +netPayInput.value;
-  //         }
-  //       }
-  //       // Now send slipData to backend as before
-  //       if (!isPreviewOnly) {
-  //         closePaySlipModal();
-  //         alert('Pay Slip saved successfully!');
-  //         clearForm();
-  //         return;
   //       }
   //       // Actually save to backend now
   //       try {
@@ -2859,7 +3305,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!isAdminRole && !isHRRole) {
     alert("Access denied. Only administrators and HR personnel can generate pay slips.");
     return;
-  }
+}
 
   setActive("btn-pay-slip");
   mainContent.innerHTML = `

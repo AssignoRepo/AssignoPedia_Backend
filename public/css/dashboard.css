@@ -3264,3 +3264,324 @@ flex-direction: column;
     white-space: nowrap;
   }
 }
+
+
+/* Blog Manager Card Responsive Fix */
+#mainContent .container {
+  max-width: 700px !important;
+  min-width: 350px !important;
+  width: 100% !important;
+  margin: 50px auto !important;
+  padding: 0 !important;
+}
+#mainContent .card {
+  width: 100% !important;
+  min-width: 350px !important;
+  margin-bottom: 1.5rem !important;
+}
+#mainContent .card-body {
+  width: 100% !important;
+  padding: 2rem 1.5rem !important;
+}
+#mainContent .form-control, #mainContent textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+  font-size: 1.1rem;
+}
+#mainContent .form-label {
+  font-size: 1.08rem;
+}
+#mainContent .ck-editor__editable_inline {
+  min-height: 220px !important;
+  font-size: 1.1rem;
+}
+#mainContent .btn-success {
+  min-width: 150px;
+  font-size: 1.08rem;
+  padding: 0.5rem 1.5rem;
+}
+@media (max-width: 800px) {
+  #mainContent .container {
+    max-width: 98vw !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+  #mainContent .card {
+    min-width: 0 !important;
+  }
+}
+
+#mainContent .ck-editor__editable_inline {
+  min-height: 220px !important;
+  font-size: 1.1rem;
+  background: #fff !important;
+  color: #212529 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: 1px solid #ddd !important;
+  margin: 0 !important;
+  padding: 0.5rem 1rem !important;
+}
+#mainContent .ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
+  border-color: #ced4da !important;
+}
+#mainContent .ck-editor {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+}
+
+#mainContent .card-body {
+  display: block !important;
+  padding: 2rem 1.5rem !important;
+}
+#mainContent .form-group, 
+#mainContent .mb-3 {
+  width: 100% !important;
+  margin-bottom: 1.2rem !important;
+  display: block !important;
+}
+#mainContent .ck-editor {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  display: block !important;
+}
+#mainContent .ck-editor__editable_inline {
+  min-height: 300px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  font-size: 1.1rem;
+  background: #fff !important;
+  color: #212529 !important;
+  border-radius: 0 !important;
+  box-shadow: 4px !important;
+  border: 1px solid #ddd !important;
+  margin: 0 !important;
+  padding: 0.5rem 1rem !important;
+  display: block !important;
+}
+#mainContent .text-end {
+  text-align: right !important;
+}
+#mainContent .btn-success {
+  min-width: 150px;
+  font-size: 1.08rem;
+  padding: 0.5rem 1.5rem;
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    left: -860px !important; /* Hide sidebar by default on mobile */
+    transition: left 0.3s;
+  }
+  .sidebar.show {
+    left: 0 !important; /* Show sidebar when toggled */
+  }
+  #mainContent {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    padding: 20 !important;
+  }
+  #mainContent .container {
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+#mainContent .alert-danger {
+  color: #161616 !important; /* Strong red */
+  background: #faf7f7b9 !important;
+  font-weight: 50;
+  margin-top: 1.2rem !important;
+  margin-bottom: 0.0rem !important;
+}
+
+/* CKEditor Image Resize Styles */
+.ck-editor__editable img {
+  max-width: 100%;
+  height: auto;
+  cursor: pointer;
+  position: relative;
+}
+
+.ck-editor__editable img:hover {
+  outline: 2px solid #007cba;
+  outline-offset: 2px;
+}
+
+.ck-editor__editable img.ck-image_selected {
+  outline: 2px solid #007cba;
+  outline-offset: 2px;
+}
+
+/* Image resize handles */
+.ck-editor__editable .ck-image__resizer {
+  position: absolute;
+  border: 1px solid #007cba;
+  background: rgba(0, 124, 186, 0.1);
+}
+
+.ck-editor__editable .ck-image__resizer__handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #007cba;
+  border: 1px solid #fff;
+  border-radius: 50%;
+}
+
+.ck-editor__editable .ck-image__resizer__handle--top-left {
+  top: -4px;
+  left: -4px;
+  cursor: nw-resize;
+}
+
+.ck-editor__editable .ck-image__resizer__handle--top-right {
+  top: -4px;
+  right: -4px;
+  cursor: ne-resize;
+}
+
+.ck-editor__editable .ck-image__resizer__handle--bottom-left {
+  bottom: -4px;
+  left: -4px;
+  cursor: sw-resize;
+}
+
+.ck-editor__editable .ck-image__resizer__handle--bottom-right {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+/* Image toolbar */
+.ck-editor__editable .ck-image__toolbar {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+}
+
+.ck-editor__editable .ck-image__toolbar .ck-button {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ck-editor__editable .ck-image__toolbar .ck-button:hover {
+  background: #f0f0f0;
+}
+
+/* Enable image resizing in CKEditor */
+.ck-editor__editable .ck-widget {
+  position: relative;
+}
+
+.ck-editor__editable .ck-widget.ck-widget_selected {
+  outline: 2px solid #007cba;
+  outline-offset: 2px;
+}
+
+.ck-editor__editable .ck-widget.ck-widget_selected .ck-widget__resizer {
+  display: block !important;
+}
+
+.ck-editor__editable .ck-widget__resizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 1px solid #007cba;
+  background: rgba(0, 124, 186, 0.1);
+  display: none;
+}
+
+.ck-editor__editable .ck-widget__resizer__handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #007cba;
+  border: 2px solid #fff;
+  border-radius: 50%;
+}
+
+.ck-editor__editable .ck-widget__resizer__handle--top-left {
+  top: -5px;
+  left: -5px;
+  cursor: nw-resize;
+}
+
+.ck-editor__editable .ck-widget__resizer__handle--top-right {
+  top: -5px;
+  right: -5px;
+  cursor: ne-resize;
+}
+
+.ck-editor__editable .ck-widget__resizer__handle--bottom-left {
+  bottom: -5px;
+  left: -5px;
+  cursor: sw-resize;
+}
+
+.ck-editor__editable .ck-widget__resizer__handle--bottom-right {
+  bottom: -5px;
+  right: -5px;
+  cursor: se-resize;
+}
+
+/* Simple Image Caption Styles */
+.ck-editor__editable p {
+  position: relative;
+}
+
+/* Style for caption paragraphs */
+.ck-editor__editable p:contains('📝 Caption:') {
+  font-size: 0.9rem !important;
+  color: #666 !important;
+  text-align: center !important;
+  font-style: italic !important;
+  margin-top: 8px !important;
+  margin-bottom: 16px !important;
+  line-height: 1.4 !important;
+  background-color: #f8f9fa !important;
+  padding: 8px !important;
+  border-radius: 4px !important;
+  border-left: 3px solid #007cba !important;
+}
+
+/* Caption editing styles */
+.ck-editor__editable p:focus:contains('📝 Caption:') {
+  outline: 2px solid #007cba !important;
+  border-radius: 4px !important;
+  padding: 8px !important;
+  background-color: #e3f2fd !important;
+}
+
+/* Caption icon */
+.ck-editor__editable p:contains('📝 Caption:')::before {
+  content: "📝 ";
+  margin-right: 4px;
+  font-size: 0.8rem;
+}
+
+/* Hide CKEditor branding to fix aria-hidden error */
+.ck.ck-powered-by {
+  display: none !important;
+}
+
+.ck.ck-powered-by-balloon {
+  display: none !important;
+}

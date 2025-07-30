@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Post - Assignopedia Services</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/mobile.css">
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <style>
+        /* Blog Detail specific styles */
+        .blog-detail-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        .blog-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .blog-category {
+            color: #667eea;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        
+        .blog-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        
+        .blog-meta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .blog-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .blog-author img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .blog-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #333;
+        }
+        
+        .blog-content h2, .blog-content h3 {
+            color: #1a1a2e;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .blog-content p {
+            margin-bottom: 20px;
+        }
+        
+        .blog-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin: 20px 0;
+            /* Enhanced image sizing options */
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        /* Option 1: Force all images to be smaller */
+        .blog-content img {
+            max-width: 400px; /* Adjust this value */
+            width: 100%;
+        }
+        
+        /* Option 2: Different sizes for different image positions */
+        .blog-content img:first-of-type {
+            max-width: 800px;
+            max-height: 400px; /* First image (title image) can be larger */
+        }
+        
+        .blog-content img:not(:first-of-type) {
+            max-width: 800px;
+            max-height: 400px; /* Other images smaller */
+        }
+        
+        /* Option 3: Responsive image sizing */
+        .blog-content img {
+            max-width: min(600px, 90vw); /* Responsive max-width */
+        }
+        
+        /* Option 4: Hover effect to show original size */
+        .blog-content img:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .blog-tags {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+        }
+        
+        .blog-tags h4 {
+            margin-bottom: 15px;
+            color: #1a1a2e;
+        }
+        
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .tag {
+            background: #f8f9fa;
+            color: #667eea;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .tag:hover {
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .back-to-blog {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .back-to-blog:hover {
+            color: #764ba2;
+            text-decoration: none;
+            transform: translateX(-5px);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 50px;
+            color: #dc3545;
+        }
+        
+        @media (max-width: 768px) {
+            .blog-title {
+                font-size: 2rem;
+            }
+            
+            .blog-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            /* Mobile image sizing */
+            .blog-content img {
+                max-width: 100%;
+                width: 100%;
+            }
+            
+            .blog-content img:first-of-type {
+                max-width: 100%;
+            }
+            
+            .blog-content img:not(:first-of-type) {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <div class="logo-container">
+                <img src="/images/logo.png" alt="Assignopedia Logo" class="logo-svg">
+                <div class="logo-text-container">
+                    <a href="index.html" class="logo-link">
+                        <span class="logo-text">Assignopedia</span>
+                    </a>
+                </div>
+            </div>
+            
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="blog.html" class="active">Blog</a></li>
+            </ul>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="login.html" class="cta-btn">Login</a>
+            
+            <!-- Mobile Navigation -->
+            <div class="mobile-nav" id="mobileNav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="blog.html" class="active">Blog</a></li>
+                </ul>
+                <div class="mobile-cta">
+                    <a href="login.html" class="cta-btn">Login</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Blog Detail Section -->
+    <main style="margin-top: 100px;">
+        <div class="blog-detail-container">
+            <a href="blog.html" class="back-to-blog">
+                <i class="fas fa-arrow-left"></i> Back to Blog
+            </a>
+            
+            <div id="blogContent">
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading blog post...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="container">
+           
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Assignopedia Services. All rights reserved. | Empowering Academic & Creative Success — One Word at a Time</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/js/mobile.js"></script>
+    <script>
+        // Get blog slug from URL
+        function getBlogSlug() {
+            const path = window.location.pathname;
+            const parts = path.split('/');
+            return parts[parts.length - 1];
+        }
+
+        // Load blog post
+        async function loadBlogPost() {
+            const blogContent = document.getElementById('blogContent');
+            const slug = getBlogSlug();
+            
+            if (!slug) {
+                blogContent.innerHTML = '<div class="error">Blog post not found.</div>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/blog/${slug}`);
+                const blog = await response.json();
+                
+                if (response.ok) {
+                    blogContent.innerHTML = `
+                        <div class="blog-header">
+                            <div class="blog-category">${blog.category}</div>
+                            <h1 class="blog-title">${blog.title}</h1>
+                            <div class="blog-meta">
+                                <div class="blog-author">
+                                    <img src="${blog.author?.avatar || '/images/logo.png'}" alt="${blog.author?.name || 'AssignoPedia'}">
+                                    <span>${blog.author?.name || 'AssignoPedia'}</span>
+                                </div>
+                                <div class="blog-date">${new Date(blog.createdAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}</div>
+                                <div class="blog-views">
+                                    <i class="fas fa-eye"></i> ${blog.viewCount || 0} views
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="blog-content">
+                            ${blog.content}
+                        </div>
+                        
+                        ${blog.tags && blog.tags.length > 0 ? `
+                            <div class="blog-tags">
+                                <h4>Tags:</h4>
+                                <div class="tag-list">
+                                    ${blog.tags.map(tag => `<a href="/blog?tag=${tag}" class="tag">#${tag}</a>`).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    `;
+                    
+                    // Update page title
+                    document.title = `${blog.title} - Assignopedia Services`;
+                } else {
+                    blogContent.innerHTML = '<div class="error">Blog post not found.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading blog post:', error);
+                blogContent.innerHTML = '<div class="error">Failed to load blog post. Please try again.</div>';
+            }
+        }
+
+        // Load blog post when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBlogPost();
+            // Add image zoom functionality after a short delay to ensure content is loaded
+            setTimeout(addImageZoom, 1000);
+        });
+        
+        // Optional: Add click-to-zoom functionality for images
+        function addImageZoom() {
+            document.addEventListener('click', function(e) {
+                if (e.target.tagName === 'IMG' && e.target.closest('.blog-content')) {
+                    const img = e.target;
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.9);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        z-index: 10000;
+                        cursor: pointer;
+                    `;
+                    
+                    const zoomedImg = document.createElement('img');
+                    zoomedImg.src = img.src;
+                    zoomedImg.style.cssText = `
+                        max-width: 90%;
+                        max-height: 90%;
+                        object-fit: contain;
+                        border-radius: 8px;
+                    `;
+                    
+                    overlay.appendChild(zoomedImg);
+                    document.body.appendChild(overlay);
+                    
+                    overlay.addEventListener('click', function() {
+                        document.body.removeChild(overlay);
+                    });
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

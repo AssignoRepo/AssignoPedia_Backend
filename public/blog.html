@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog - Assignopedia Services</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/mobile.css">
+   
+    <link rel="icon" type="image/png" href="/images/logo.png" />
+    <style>
+        /* Blog specific styles */
+        
+        /* Login Button Styling */
+        .cta-btn {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+        }
+        
+        .cta-btn:hover {
+            background: linear-gradient(90deg, #764ba2, #667eea);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .cta-btn:active {
+            transform: translateY(0);
+        }
+        
+        .blog-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 120px 0 80px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .blog-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .blog-hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .blog-hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .blog-hero p {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+
+        .blog-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+
+        /* Featured Blog Post */
+        .featured-blog {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 60px;
+            display: flex;
+            min-height: 400px;
+        }
+
+        .featured-blog-image {
+            flex: 0 0 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .featured-blog-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .featured-blog:hover .featured-blog-image img {
+            transform: scale(1.05);
+        }
+
+        .featured-blog-content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .featured-blog-category {
+            color: #667eea;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .featured-blog-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+
+        .featured-blog-excerpt {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .featured-blog-meta {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        .featured-blog-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color:var(--gradient);
+        }
+
+        .featured-blog-author img {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .featured-blog-readmore {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .featured-blog-readmore:hover {
+            color: #764ba2;
+            transform: translateX(5px);
+        }
+
+        /* Blog Grid */
+        .blog-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .blog-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .blog-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        }
+
+        .blog-card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .blog-card:hover .blog-card-image {
+            transform: scale(1.05);
+        }
+
+        .blog-card-content {
+            padding: 25px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .blog-card-category {
+            color: #667eea;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .blog-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .blog-card-excerpt {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .blog-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 15px;
+        }
+
+        .blog-card-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .blog-card-author img {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .blog-card-readmore {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .blog-card-readmore:hover {
+            color: #764ba2;
+            transform: translateX(3px);
+        }
+
+        /* Blog filters */
+        .blog-filters {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Search bar */
+        .blog-search {
+            max-width: 600px;
+            margin: 0 auto 40px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 18px 25px;
+            padding-left: 50px;
+            border: 2px solid #e1e5e9;
+            border-radius: 50px;
+            background: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        /* Loading animation */
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 50px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* No results message */
+        .no-results {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            font-size: 1.2rem;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1024px) {
+            .featured-blog {
+                flex-direction: column;
+            }
+            
+            .featured-blog-image {
+                height: 250px;
+            }
+            
+            .blog-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .blog-hero h1 {
+                font-size: 2.5rem;
+            }
+            
+            .blog-hero p {
+                font-size: 1rem;
+            }
+            
+            .featured-blog-content {
+                padding: 25px;
+            }
+            
+            .featured-blog-title {
+                font-size: 1.8rem;
+            }
+            
+            .blog-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .blog-filters {
+                gap: 10px;
+            }
+            
+            .filter-btn {
+                padding: 10px 20px;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .blog-hero {
+                padding: 100px 0 60px;
+            }
+            
+            .blog-hero h1 {
+                font-size: 2rem;
+            }
+            
+            .featured-blog-title {
+                font-size: 1.5rem;
+            }
+            
+            .blog-card-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll to Top Button -->
+    <div class="scroll-top" id="scrollTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <nav class="container">
+            <div class="logo-container">
+                <img src="/images/logo.png" alt="Assignopedia Logo" class="logo-svg">
+                <div class="logo-text-container">
+                    <a href="index.html" class="logo-link">
+                        <span class="logo-text">Assignopedia</span>
+                    </a>
+                </div>
+            </div>
+            
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="services.html">Services</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="careers.html">Careers</a></li>
+                <li><a href="contact.html">Contact</a></li>
+                <li><a href="blog.html" class="active">Blog</a></li>
+            </ul>
+            
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="login.html" class="cta-btn">Login</a>
+            
+            <!-- Mobile Navigation -->
+            <div class="mobile-nav" id="mobileNav">
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="services.html">Services</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="careers.html">Careers</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="blog.html" class="active">Blog</a></li>
+                </ul>
+                <div class="mobile-cta">
+                    <a href="login.html" class="cta-btn">Login</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Blog Hero Section -->
+    <section class="blog-hero">
+        <div class="blog-hero-content">
+            <h1>Assignopedia Blog</h1>
+            <p>Discover insights, tips, and industry knowledge to enhance your academic and content writing journey</p>
+        </div>
+    </section>
+
+    <!-- Blog Section -->
+    <main>
+        <div class="blog-container">
+            <!-- Search Bar -->
+            <div class="blog-search">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-input" placeholder="Search blog posts..." id="searchInput">
+            </div>
+
+            <!-- Blog Filters -->
+            <div class="blog-filters" id="blogFilters">
+                <button class="filter-btn active" data-category="all">All Posts</button>
+                <button class="filter-btn" data-category="Academic">Academic</button>
+                <button class="filter-btn" data-category="Research">Research</button>
+                <button class="filter-btn" data-category="Writing">Writing</button>
+                <button class="filter-btn" data-category="Tips">Study Tips</button>
+            </div>
+
+            <!-- Featured Blog Post -->
+            <div class="featured-blog" id="featuredBlog">
+                <!-- Featured blog will be dynamically inserted here -->
+            </div>
+
+            <!-- Blog Grid -->
+            <div class="blog-grid" id="blogGrid">
+                <!-- Blog posts will be dynamically inserted here -->
+                <div class="loading-spinner"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="container">
+            <!-- <div class="footer-content">
+                <div class="footer-section fade-in">
+                    <h3><i class="fas fa-map-marker-alt"></i> Contact Information</h3>
+                    <p><strong>Office Address:</strong><br>
+                    Assignopedia Services<br>
+                    Kolkata, West Bengal, India</p>
+                    <p><strong><i class="fas fa-phone"></i> Phone/WhatsApp:</strong><br>
+                    <a href="tel:+916291075245">+91 6291075245</a></p>
+                    <p><strong><i class="fas fa-clock"></i> Business Hours:</strong><br>
+                    Monday - Saturday: 11:00 AM – 07:00 PM<br>
+                    Sunday: Closed</p>
+                </div>
+
+                <div class="footer-section fade-in">
+                    <h3><i class="fas fa-envelope"></i> Get in Touch</h3>
+                    <p><strong>Client Queries & Projects:</strong><br>
+                    <a href="mailto:assignopedia2.0@gmail.com">assignopedia2.0@gmail.com</a></p>
+                    <p><strong>Career Opportunities:</strong><br>
+                    <a href="mailto:hrrecruiter.aop@gmail.com">hrrecruiter.aop@gmail.com</a></p>
+                    <p><strong>Response Time:</strong><br>
+                    Within 2 hours during business hours</p>
+                    <div class="social-links">
+                        <h3><i class="fas fa-share-alt"></i> Connect With Us</h3>
+                        <a href="https://www.facebook.com/profile.php?id=100088741681767&mibextid=rS40aB7S9Ucbxw6v" target="_blank" class="social-icon"><i class="fab fa-facebook"></i></a>
+                        <a href="" target="_blank" class="social-icon"><i class="fab fa-instagram"></i></a>
+                        <a href="https://www.linkedin.com/company/assignopedia-services/" target="_blank" class="social-icon"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section fade-in">
+                    <h3><i class="fas fa-link"></i> Quick Navigation</h3>
+                    <ul>
+                        <li><a href="services.html"><i class="fas fa-cogs"></i> Our Services</a></li>
+                        <li><a href="about.html"><i class="fas fa-info-circle"></i> About Us</a></li>
+                        <li><a href="careers.html"><i class="fas fa-users"></i> Careers</a></li>
+                        <li><a href="contact.html"><i class="fas fa-phone"></i> Contact</a></li>
+                    </ul>
+                    <p><strong>Why Students Choose Us:</strong></p>
+                    <ul>
+                        <li><i class="fas fa-star"></i> 98% Client Satisfaction</li>
+                        <li><i class="fas fa-award"></i> Award-Winning Quality</li>
+                        <li><i class="fas fa-thumbs-up"></i> 5000+ Happy Clients</li>
+                        <li><i class="fas fa-medal"></i> Industry Recognition</li>
+                    </ul>
+                </div>
+            </div> -->
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Assignopedia Services. All rights reserved. | Empowering Academic & Creative Success — One Word at a Time</p>
+            </div>
+        </div>
+    </footer>
+
+     <style>
+        .social-links {
+            margin-top: 20px;
+        }
+        
+        .social-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+        
+        .social-icon:hover {
+            color: #0056b3;
+        }
+        
+        .fa-facebook:hover {
+            color: #4267B2;
+        }
+        
+        .fa-instagram:hover {
+            color: #E1306C;
+        }
+        
+        .fa-linkedin:hover {
+            color: #0077B5;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-text-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            line-height: 1.2;
+        }
+
+        .logo-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .logo-link:hover {
+            text-decoration: none;
+        }
+
+        .logo-text, .logo-subtext {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: none;
+            letter-spacing: 0.5px;
+            transition: color 0.3s ease;
+        }
+
+        .logo-text {
+            margin-bottom: 0;
+        }
+
+        .logo-subtext {
+            margin-top: 0;
+            margin-right: -20px;
+        }
+    </style>
+    <script src="/js/mobile.js"></script>
+    <script src="/js/blog-posts.js"></script>
+</body>
+</html> 

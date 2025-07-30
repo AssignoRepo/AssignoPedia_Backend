@@ -18,6 +18,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Blog detail page route
+app.get("/blog/:slug", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "blog-detail.html"));
+});
+
 app.use(
   cors({
     origin: "*", // for development only
@@ -2452,6 +2457,79 @@ paySlipSchema.set('toJSON', { virtuals: true });
 
 const PaySlip = conn.model('PaySlip', paySlipSchema);
 
+// Blog Schema and Model
+const blogSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  content: {
+    type: String,
+    required: true
+  },
+  excerpt: {
+    type: String,
+    required: true,
+    maxlength: 200
+  },
+  image: {
+    type: String,  // URL of the uploaded image
+    required: false
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Academic', 'Research', 'Writing', 'Study Tips', 'General'],
+    default: 'General'
+  },
+  author: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    required: true
+  },
+  slug: {
+    type: String,
+    unique: true,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: ['draft', 'published'],
+    default: 'published'
+  },
+  tags: [{
+    type: String,
+    trim: true
+  }],
+  viewCount: {
+    type: Number,
+    default: 0
+  }
+}, {
+  timestamps: true
+});
+
+// Create slug from title before saving
+blogSchema.pre('save', function(next) {
+  // Generate slug if title exists and slug is not set or title is modified
+  if (this.title && (!this.slug || this.isModified('title'))) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  }
+  next();
+});
+
+const Blog = conn.model('Blog', blogSchema);
+
+// Export models for use in routes
+module.exports.Blog = Blog;
+module.exports.Employee = Employee;
+
 // Utility: Convert number to words (Indian system)
 function numberToWords(num) {
   if (num === 0) return "Zero";
@@ -3532,3 +3610,13 @@ app.get('/api/mypayslips', authenticateToken, async (req, res) => {
       res.status(500).json({ success: false, message: 'Server error', error: err.message });
     }
   });
+
+  const uploadDir = path.join(__dirname, 'public/uploads/blog-images');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('Created blog images upload directory:', uploadDir);
+}
+
+// ... existing routes ...
+const blogRoutes = require('./routes/blogRoutes');
+app.use('/api/blog', blogRoutes);
