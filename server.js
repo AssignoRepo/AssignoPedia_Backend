@@ -1438,7 +1438,7 @@ app.get("/api/word-count", authenticateToken, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
 });
-});
+
 
 // GET /api/word-count/today?employeeId=...
 app.get("/api/word-count/today", authenticateToken, async (req, res) => {
