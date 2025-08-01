@@ -1407,6 +1407,7 @@ app.post("/api/word-count", authenticateToken, requireHRorAdminOrTeamLeader, asy
 });
 
 // GET /api/word-count?employeeId=...&month=...&year=...
+// GET /api/word-count?employeeId=...&month=...&year=...
 app.get("/api/word-count", authenticateToken, async (req, res) => {
   try {
     const { employeeId, month, year } = req.query;
@@ -1415,18 +1416,28 @@ app.get("/api/word-count", authenticateToken, async (req, res) => {
         .status(400)
         .json({ success: false, message: "employeeId, month, and year are required." });
     }
-    const m = parseInt(month) - 1;
+    // --- IST month range logic ---
+    function getISTMonthRangeUTC(year, month) {
+      // month: 1-based (1=Jan)
+      const startIST = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+      const endIST = new Date(Date.UTC(year, month, 1, 0, 0, 0));
+      const IST_OFFSET_MINUTES = 330;
+      const startUTC = new Date(startIST.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
+      const endUTC = new Date(endIST.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
+      return { startUTC, endUTC };
+    }
     const y = parseInt(year);
-    const start = new Date(y, m, 1);
-    const end = new Date(y, m + 1, 0, 23, 59, 59, 999);
+    const m = parseInt(month);
+    const { startUTC, endUTC } = getISTMonthRangeUTC(y, m);
     const wordCounts = await WordCount.find({
       employeeId,
-      date: { $gte: start, $lte: end },
+      date: { $gte: startUTC, $lt: endUTC },
     }).sort({ date: 1 });
     res.json({ success: true, wordCounts });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
+});
 });
 
 // GET /api/word-count/today?employeeId=...
