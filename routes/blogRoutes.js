@@ -3,9 +3,17 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 // Get the Blog model from the main server file
 const { Blog } = require('../server');
+
+function getExtensionFromMIME(mimetype) {
+  if (!mimetype || !mimetype.startsWith('image/')) return '.img';
+  let ext = mimetype.split('/')[1].toLowerCase();
+  if (ext === 'jpeg') ext = 'jpg';
+  return `.${ext}`;
+}
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -14,7 +22,8 @@ const storage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'blog-' + uniqueSuffix + path.extname(file.originalname));
+    const ext = getExtensionFromMIME(file.mimetype) || path.extname(file.originalname) || '.jpg';
+    cb(null, 'blog-' + uniqueSuffix + ext);
   }
 });
 
@@ -67,12 +76,16 @@ router.get('/', async (req, res) => {
       .skip((page - 1) * limit)
       .exec();
     
-    // Add author.name and author.avatar for frontend
+    // Add author.name and author.avatar for frontend and normalize image URL
     const blogsWithAuthor = blogs.map(blog => {
       const b = blog.toObject();
       if (b.author) {
         b.author.name = 'AssignoPedia';
         b.author.avatar = '/images/logo.png';
+      }
+      if (b.image) {
+        // normalize leading slash
+        b.image = b.image.startsWith('/') ? b.image : `/${b.image}`;
       }
       return b;
     });
@@ -107,11 +120,14 @@ router.get('/:slug', async (req, res) => {
     blog.viewCount += 1;
     await blog.save();
     
-    // Add author.name and author.avatar for frontend
+    // Add author.name and author.avatar for frontend and normalize image URL
     const b = blog.toObject();
     if (b.author) {
       b.author.name = 'AssignoPedia';
       b.author.avatar = '/images/logo.png';
+    }
+    if (b.image) {
+      b.image = b.image.startsWith('/') ? b.image : `/${b.image}`;
     }
     
     res.json(b);
@@ -161,7 +177,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       tags: tags ? tags.split(',').map(tag => tag.trim()) : []
     };
     
-    // Extract first image from CKEditor content
+    // Extract first image from CKEditor content (this will be our card image if no cover uploaded)
     const firstImage = extractFirstImageSrc(content);
     if (firstImage) {
       blogData.image = firstImage;
@@ -307,7 +323,7 @@ router.post('/upload-image', auth, upload.single('upload'), async (req, res) => 
       });
     }
 
-    // Return the URL for CKEditor
+    // Return the URL for CKEditor (preserves correct extension from MIME)
     const imageUrl = `/uploads/blog-images/${req.file.filename}`;
     res.json({
       url: imageUrl
@@ -318,6 +334,45 @@ router.post('/upload-image', auth, upload.single('upload'), async (req, res) => 
         message: 'Failed to upload image' 
       } 
     });
+  }
+});
+
+// --- ADMIN: One-time fixer to align DB image extensions with files on disk ---
+router.post('/admin/fix-image-extensions', auth, async (req, res) => {
+  try {
+    if (!['admin', 'hr_admin'].includes(req.employee.role)) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const publicBase = path.join(__dirname, '..', 'public');
+    const blogs = await Blog.find({ image: { $regex: '^/uploads/' } });
+    let updated = 0;
+    const changes = [];
+
+    for (const blog of blogs) {
+      const imgPath = (blog.image || '').replace(/^\//, '');
+      if (!imgPath) continue;
+      const full = path.join(publicBase, imgPath);
+      if (fs.existsSync(full)) continue;
+
+      const m = imgPath.match(/^(.*)\.(png|jpg|jpeg|webp)$/i);
+      if (!m) continue;
+      const base = m[1];
+      const tries = [`${base}.jpg`, `${base}.jpeg`, `${base}.png`, `${base}.webp`];
+      const found = tries.find(p => fs.existsSync(path.join(publicBase, p)));
+      if (found) {
+        const old = blog.image;
+        blog.image = `/${found.replace(/\\/g, '/')}`;
+        await blog.save();
+        updated += 1;
+        changes.push({ id: blog._id, from: old, to: blog.image });
+      }
+    }
+
+    res.json({ success: true, updated, changes });
+  } catch (err) {
+    console.error('fix-image-extensions error:', err);
+    res.status(500).json({ error: 'Failed to fix image extensions' });
   }
 });
 

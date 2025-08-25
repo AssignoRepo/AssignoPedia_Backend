@@ -1,6 +1,80 @@
 // Blog posts data - This will be replaced with dynamic data from your backend
 let blogPosts = [];
 
+// Robust image URL normalizer for blog images
+function resolveBlogImageUrl(rawUrl) {
+  try {
+    if (!rawUrl || typeof rawUrl !== 'string') return '/images/default-blog.jpg';
+
+    // Absolute URL
+    if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+
+    let url = rawUrl.trim();
+
+    // Strip accidental leading 'public/'
+    if (url.startsWith('public/')) url = url.substring('public/'.length);
+
+    // If only a filename like blog-123-456.jpg
+    if (/^blog-\d+-\d+\.[a-zA-Z0-9]+$/.test(url)) {
+      url = `uploads/blog-images/${url}`;
+    }
+
+    // Ensure uploads path for in-app relative paths
+    if (!url.startsWith('uploads/') && !url.startsWith('/uploads/')) {
+      if (!url.startsWith('images/') && !url.startsWith('/images/')) {
+        url = `uploads/blog-images/${url.split('/').pop()}`;
+      }
+    }
+
+    // Ensure leading slash
+    if (!url.startsWith('/')) url = `/${url}`;
+
+    return url;
+  } catch (_e) {
+    return '/images/default-blog.jpg';
+  }
+}
+
+// Fallback handler: try alternate extensions then default
+function handleBlogImgError(imgEl) {
+  if (!imgEl || !imgEl.src) return;
+  const triedSwap = '__triedSwap__';
+  const triedPrefix = '__triedPrefix__';
+  const triedDefault = '__triedDefault__';
+
+  try {
+    const url = new URL(imgEl.src, window.location.origin);
+    const pathname = url.pathname;
+
+    // Try swapping .png <-> .jpg/.jpeg
+    if (!imgEl[triedSwap]) {
+      const m = pathname.match(/^(.*)\.(png|jpg|jpeg)$/i);
+      if (m) {
+        const base = m[1];
+        const ext = m[2].toLowerCase();
+        const alt = ext === 'png' ? 'jpg' : 'png';
+        imgEl[triedSwap] = true;
+        imgEl.src = `${base}.${alt}`;
+        return;
+      }
+    }
+
+    // If bare filename without uploads prefix
+    if (!imgEl[triedPrefix] && /^\/blog-\d+-\d+\.[a-zA-Z0-9]+$/.test(pathname)) {
+      imgEl[triedPrefix] = true;
+      imgEl.src = `/uploads/blog-images${pathname}`;
+      return;
+    }
+
+    if (!imgEl[triedDefault]) {
+      imgEl[triedDefault] = true;
+      imgEl.src = '/images/default-blog.jpg';
+    }
+  } catch (_e) {
+    imgEl.src = '/images/default-blog.jpg';
+  }
+}
+
 // Function to fetch blog posts from backend
 async function fetchBlogPosts() {
   try {
@@ -13,7 +87,7 @@ async function fetchBlogPosts() {
         id: blog._id,
         title: blog.title,
         excerpt: blog.excerpt,
-        image: blog.image ? (blog.image.startsWith('http') ? blog.image : `${blog.image.startsWith('/') ? '' : '/'}${blog.image}`) : '/images/default-blog.jpg',
+        image: resolveBlogImageUrl(blog.image || ''),
         author: {
           name: blog.author?.name || 'AssignoPedia',
           avatar: blog.author?.avatar || '/images/logo.png'
@@ -75,7 +149,7 @@ async function fetchBlogPosts() {
 function createBlogCard(post) {
   return `
     <div class="blog-card" data-category="${post.category}">
-      <img src="${post.image}" alt="${post.title}" class="blog-card-image">
+      <img src="${post.image}" alt="${post.title}" class="blog-card-image" onerror="handleBlogImgError(this)">
       <div class="blog-card-content">
         <div class="blog-card-category">${post.category}</div>
         <h3 class="blog-card-title">${post.title}</h3>
@@ -99,7 +173,7 @@ function createBlogCard(post) {
 function createFeaturedBlog(post) {
   return `
     <div class="featured-blog-image">
-      <img src="${post.image}" alt="${post.title}">
+      <img src="${post.image}" alt="${post.title}" onerror="handleBlogImgError(this)">
     </div>
     <div class="featured-blog-content">
       <div class="featured-blog-category">${post.category}</div>
