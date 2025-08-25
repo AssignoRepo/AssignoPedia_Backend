@@ -4,7 +4,7 @@
   "description": "Backend for Assignopedia Employee Login and Dashboard",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "npm start"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

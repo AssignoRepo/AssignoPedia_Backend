@@ -201,6 +201,43 @@
                 max-width: 100%;
             }
         }
+
+        /* Match blog.html navbar CTA and logo styles */
+        .cta-btn {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            cursor: pointer;
+        }
+        .cta-btn:hover {
+            background: linear-gradient(90deg, #764ba2, #667eea);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        .cta-btn:active { transform: translateY(0); }
+
+        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .logo-text-container { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+        .logo-link { text-decoration: none; color: inherit; }
+        .logo-link:hover { text-decoration: none; }
+        .logo-text, .logo-subtext {
+            font-size: 1.5rem; font-weight: bold; background: var(--gradient);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; text-transform: none; letter-spacing: 0.5px;
+            transition: color 0.3s ease;
+        }
+        .logo-text { margin-bottom: 0; }
+        .logo-subtext { margin-top: 0; margin-right: -20px; }
     </style>
 </head>
 <body>
@@ -210,39 +247,39 @@
             <div class="logo-container">
                 <img src="/images/logo.png" alt="Assignopedia Logo" class="logo-svg">
                 <div class="logo-text-container">
-                    <a href="index.html" class="logo-link">
+                    <a href="/index.html" class="logo-link">
                         <span class="logo-text">Assignopedia</span>
                     </a>
                 </div>
             </div>
             
             <ul class="nav-links">
-                <li><a href="index.html">Home</a></li>
-                <li><a href="services.html">Services</a></li>
-                <li><a href="about.html">About</a></li>
-                <li><a href="careers.html">Careers</a></li>
-                <li><a href="contact.html">Contact</a></li>
-                <li><a href="blog.html" class="active">Blog</a></li>
+                <li><a href="/index.html">Home</a></li>
+                <li><a href="/services.html">Services</a></li>
+                <li><a href="/about.html">About</a></li>
+                <li><a href="/careers.html">Careers</a></li>
+                <li><a href="/contact.html">Contact</a></li>
+                <li><a href="/blog.html" class="active">Blog</a></li>
             </ul>
             
             <button class="mobile-menu-btn" id="mobileMenuBtn">
                 <i class="fas fa-bars"></i>
             </button>
             
-            <a href="login.html" class="cta-btn">Login</a>
+            <a href="/login.html" class="cta-btn">Login</a>
             
             <!-- Mobile Navigation -->
             <div class="mobile-nav" id="mobileNav">
                 <ul>
-                    <li><a href="index.html">Home</a></li>
-                    <li><a href="services.html">Services</a></li>
-                    <li><a href="about.html">About</a></li>
-                    <li><a href="careers.html">Careers</a></li>
-                    <li><a href="contact.html">Contact</a></li>
-                    <li><a href="blog.html" class="active">Blog</a></li>
+                    <li><a href="/index.html">Home</a></li>
+                    <li><a href="/services.html">Services</a></li>
+                    <li><a href="/about.html">About</a></li>
+                    <li><a href="/careers.html">Careers</a></li>
+                    <li><a href="/contact.html">Contact</a></li>
+                    <li><a href="/blog.html" class="active">Blog</a></li>
                 </ul>
                 <div class="mobile-cta">
-                    <a href="login.html" class="cta-btn">Login</a>
+                    <a href="/login.html" class="cta-btn">Login</a>
                 </div>
             </div>
         </nav>
@@ -251,7 +288,7 @@
     <!-- Blog Detail Section -->
     <main style="margin-top: 100px;">
         <div class="blog-detail-container">
-            <a href="blog.html" class="back-to-blog">
+            <a href="/blog.html" class="back-to-blog">
                 <i class="fas fa-arrow-left"></i> Back to Blog
             </a>
             
