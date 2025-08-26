@@ -24,7 +24,7 @@
    const ATTENDANCE_CHECKOUT_KEY = 'attendanceCheckOutTime';
    const ATTENDANCE_DATE_KEY = 'attendanceDate';
    const TEAM_MEMBER_EXCLUDE_ROLES = [
-     'admin', 'hr_admin', 'hr_recruiter', 'team_leader', 'senior_writer', 'bdm'
+     'admin', 'hr_admin', 'hr_recruiter','hr_executive' ,'team_leader', 'senior_writer', 'bdm'
    ];
 window.approveLeaveRequest = async function (id) {
   try {
@@ -612,12 +612,11 @@ function setLogoutListener() {
     };
   }
 }
-
 // Blog Manager section loader
 async function loadBlogManager() {
   // Role check: only admin and hr_recruiter
   const employee = JSON.parse(localStorage.getItem("employee"));
-  if (!employee || (employee.role !== "admin" && employee.role !== "hr_recruiter")) {
+  if (!employee || (employee.role !== "admin" && employee.role !== "hr_recruiter" && employee.role=="hr_executive")) {
     alert("Access denied. Only admin and HR Recruiter can access Blog Manager.");
     return;
   }
@@ -630,67 +629,73 @@ async function loadBlogManager() {
   const mainContent = document.getElementById("mainContent");
 
   mainContent.innerHTML = `
-    <div class="container" style="max-width: 800px; margin: 50px auto;">
-      <div class="card shadow-sm">
-        <div class="card-header" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;">
-          <h5 class="mb-0">📝 Post a New Blog</h5>
+    <div class="blog-manager">
+      <div class="bm-header">
+        <div class="bm-header-title">
+          <span class="bm-header-icon">📝</span>
+          <h2>Post a New Blog</h2>
         </div>
-        <div class="card-body">
-          <form id="blogPostForm" enctype="multipart/form-data" autocomplete="off">
-            <div class="mb-3">
-              <label for="title" class="form-label">Blog Title <span class="text-danger">*</span></label>
-              <input type="text" name="title" id="title" class="form-control" placeholder="Enter blog title" required>
-            </div>
-            <div class="mb-3">
-              <label for="excerpt" class="form-label">Excerpt/Summary <span class="text-danger">*</span></label>
-              <textarea name="excerpt" id="excerpt" class="form-control" rows="3" placeholder="Write a brief summary of your blog post (max 200 characters)..." maxlength="200" required></textarea>
-              <small class="form-text text-muted">This will appear as a preview on the blog listing page</small>
-            </div>
-            <div class="mb-3">
-              <label for="content" class="form-label">Content <span class="text-danger">*</span></label>
-              <textarea name="content" id="editor"></textarea>
-            </div>
-            <div class="row">
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label for="category" class="form-label">Category</label>
-                  <select name="category" id="category" class="form-control">
-                    <option value="Academic">Academic</option>
-                    <option value="Research">Research</option>
-                    <option value="Writing">Writing</option>
-                    <option value="Study Tips">Study Tips</option>
-                    <option value="General">General</option>
-                  </select>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label for="tags" class="form-label">Tags (comma-separated)</label>
-                  <input type="text" name="tags" id="tags" class="form-control" placeholder="e.g., education, writing, tips">
-                </div>
-              </div>
-            </div>
-            <div class="text-end">
-              <button type="button" class="btn btn-success" id="publishBlogBtn">
-                <i class="fas fa-paper-plane"></i> Publish Blog
-              </button>
-            </div>
-            <div id="blogFormMsg" class="mt-3"></div>
-          </form>
-        </div>
+        <p class="bm-subtext">Share updates, tips, and stories with the Assignopedia community</p>
       </div>
-      
-      <!-- Blog Management Section -->
-      <div class="card shadow-sm mt-4">
-        <div class="card-header" style="background:linear-gradient(135deg,#764ba2,#667eea);color:#fff;">
-          <h5 class="mb-0">📋 Manage Blog Posts</h5>
-        </div>
-        <div class="card-body">
-          <div id="blogList">
-            <div class="text-center">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+
+      <div class="bm-card">
+        <form id="blogPostForm" enctype="multipart/form-data" autocomplete="off">
+          <div class="bm-form-grid">
+            <div class="bm-form-group bm-col-span-2">
+              <label for="title" class="bm-label">Blog Title <span class="required">*</span></label>
+              <input type="text" name="title" id="title" class="bm-input" placeholder="Enter blog title" required>
+            </div>
+
+            <div class="bm-form-group bm-col-span-2">
+              <label for="excerpt" class="bm-label">Excerpt/Summary <span class="required">*</span></label>
+              <textarea name="excerpt" id="excerpt" class="bm-textarea" rows="3" placeholder="Write a brief summary (max 200 characters)" maxlength="200" required></textarea>
+              <small class="bm-hint">This appears as a preview on the blog listing page</small>
+            </div>
+
+            <div class="bm-form-group bm-col-span-2">
+              <label for="content" class="bm-label">Content <span class="required">*</span></label>
+              <div class="bm-editor-wrapper">
+                <textarea name="content" id="editor"></textarea>
               </div>
+            </div>
+
+            <div class="bm-form-group">
+              <label for="category" class="bm-label">Category</label>
+              <select name="category" id="category" class="bm-input">
+                <option value="Academic">Academic</option>
+                <option value="Research">Research</option>
+                <option value="Writing">Writing</option>
+                <option value="Study Tips">Study Tips</option>
+                <option value="General">General</option>
+              </select>
+            </div>
+
+            <div class="bm-form-group">
+              <label for="tags" class="bm-label">Tags</label>
+              <input type="text" name="tags" id="tags" class="bm-input" placeholder="e.g., education, writing, tips">
+            </div>
+          </div>
+
+          <div class="bm-actions">
+            <button type="button" class="bm-btn bm-btn-primary" id="publishBlogBtn">
+              <i class="fas fa-paper-plane"></i> Publish Blog
+            </button>
+            <div id="blogFormMsg" class="bm-msg"></div>
+          </div>
+        </form>
+      </div>
+
+      <div class="bm-card bm-table-card">
+        <div class="bm-header bm-inner">
+          <div class="bm-header-title">
+            <span class="bm-header-icon">📋</span>
+            <h2>Manage Blog Posts</h2>
+          </div>
+        </div>
+        <div id="blogList" class="bm-table-wrapper">
+          <div class="bm-loading">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
             </div>
           </div>
         </div>
@@ -1059,8 +1064,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-blog-manager").addEventListener("click", loadBlogManager);
   }
 });
-
-
 document.addEventListener("DOMContentLoaded", () => {
   mainContent = document.getElementById("mainContent");
 
@@ -1090,7 +1093,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   console.log(employee);
   // Enhanced Role-based access control
-  isAdminRole = employee.role === "admin" || employee.role === "hr_admin";
+  isAdminRole = employee.role === "admin" || employee.role === "hr_admin" ;
   isHRRole =
     employee.role === "hr_admin" ||
     employee.role === "hr_manager" ||
@@ -1098,7 +1101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     employee.role === "hr_recruiter";
   isBDMorTL = employee.role === "bdm" || employee.role === "team_leader" || employee.role === "tl";
   isRegularEmployee = !isAdminRole && !isHRRole && !isBDMorTL;
-  isAdminOrHRRecruiter = employee.role === "admin" || employee.role === "hr_recruiter";
+  isAdminOrHRRecruiter = employee.role === "admin" || employee.role === "hr_recruiter"|| employee.role=="hr_executive";
   // mainContent = document.getElementById("mainContent"); // Remove this redeclaration
 
   // Enhanced Access Control Summary:
@@ -1403,7 +1406,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Add Blog Manager button for hr_recruiter only
-    if (employee.role === "hr_recruiter" && !document.getElementById("btn-blog-manager")) {
+    if (employee.role === "hr_recruiter" && employee.role=="hr_executive" && !document.getElementById("btn-blog-manager")) {
       const blogManagerBtn = document.createElement("button");
       blogManagerBtn.id = "btn-blog-manager";
       blogManagerBtn.className = "sidebar-btn";
@@ -1611,7 +1614,6 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   }
-
   // Load Leave Request Form and History
   async function loadLeaveRequest() {
     setActive("btn-leave");
@@ -2143,7 +2145,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Simulate success
     return true;
   }
-
   // Add Employee Form
   function loadAddEmployee() {
     // Security check - only admin and HR roles can add employees
@@ -2662,7 +2663,6 @@ document.addEventListener("DOMContentLoaded", () => {
       textarea.style.padding = "10px";
     }
   });
-
   // Load Leave Approval Page (Admin Only)
   async function loadLeaveApproval() {
     // Security check - only admin and HR roles can approve leaves
@@ -3308,7 +3308,6 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Access denied. Only administrators and HR personnel can generate pay slips.");
     return;
 }
-
   setActive("btn-pay-slip");
   mainContent.innerHTML = `
     <div class="pay-slip-outer" id="paySlipOuter">
@@ -4902,7 +4901,6 @@ async function showTeamPerformanceBarChart(teamMembers, selectedMemberId, month,
     options: chartOptions
   });
 }
-
 // Add WFH Request Section
 function loadWFHRequest() {
   setActive("btn-wfh");
@@ -5537,7 +5535,6 @@ function displayWFHRequests(requests) {
     });
   });
 }
-
 // Function to approve WFH request
 async function approveWFHRequest(requestId) {
   if (!confirm("Are you sure you want to approve this WFH request?")) {
@@ -5662,7 +5659,7 @@ function loadNoticeBoard() {
   }
   // Normalize role to lower case for robust comparison
   const role = employee.role.toLowerCase();
-  const allowedRoles = ["admin", "hr_admin", "hr_recruiter"];
+  const allowedRoles = ["admin", "hr_admin", "hr_recruiter","hr_executive"];
   if (!allowedRoles.includes(role)) {
     alert("Access denied. Only administrators and HR personnel can send notices.");
     return;
@@ -6100,7 +6097,6 @@ if (isAdminRole || isHRRole) {
     });
   }
 }
-
 // --- Leave Request Tracker Section ---
 async function loadLeaveTracker() {
   setActive("btn-leave-tracker");
@@ -6522,7 +6518,6 @@ function attachWordCountNameSearch() {
     });
   }
 }
-
 // --- Attendance Tracker Section ---
 async function loadAttendanceTracker() {
   setActive("btn-attendance-tracker");
@@ -7142,7 +7137,6 @@ async function markNotificationAsRead(noticeId) {
     // Ignore errors for now
   }
 }
-
 // --- Update notification badge using backend data ---
 async function updateNotificationBadge(notificationsData) {
   let notifications = notificationsData;
@@ -7773,7 +7767,6 @@ if (token) {
 // In updateLeaveApprovalBadge:
 
 // ... existing code ...
-
 // --- Add this inside loadManageEmployee after rendering the form ---
 function attachManageEmployeeNameSearch() {
   const nameInput = document.getElementById("searchEmployeeName");
@@ -8407,7 +8400,6 @@ function setupTeamCreationForm() {
   }
 
 }
-
 function loadPaySlipView() {
   mainContent.innerHTML = `
     <div class="pay-slip-outer" id="paySlipOuter">
