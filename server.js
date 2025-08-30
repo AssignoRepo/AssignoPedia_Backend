@@ -2048,6 +2048,78 @@ app.get("/api/leave-unread-count", authenticateToken, requireHRorAdmin, async (r
   }
 });
 
+// --- GET: Get approved leaves for tomorrow ---
+app.get("/api/leaves/tomorrow", authenticateToken, requireHRorAdmin, async (req, res) => {
+  try {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const nextDay = new Date(tomorrow);
+    nextDay.setDate(nextDay.getDate() + 1);
+    
+    const approvedLeaves = await LeaveRequest.find({
+      status: "Approved",
+      $or: [
+        { fromDate: { $lte: nextDay }, toDate: { $gte: tomorrow } },
+        { fromDate: { $gte: tomorrow, $lt: nextDay } },
+        { toDate: { $gte: tomorrow, $lt: nextDay } }
+      ]
+    }).populate('employeeId', 'firstName lastName employeeId');
+    
+    const employeesOnLeave = approvedLeaves.map(leave => ({
+      name: leave.name || `${leave.employeeId?.firstName || ''} ${leave.employeeId?.lastName || ''}`.trim(),
+      employeeId: leave.employeeId?.employeeId || leave.employeeId,
+      reason: leave.reason,
+      leaveCount: leave.leaveCount,
+      fromDate: leave.fromDate,
+      toDate: leave.toDate
+    }));
+    
+    res.json({ success: true, leaves: employeesOnLeave });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+});
+
+// --- GET: Get approved leaves for a specific date ---
+app.get("/api/leaves/by-date", authenticateToken, requireHRorAdmin, async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: "Date parameter is required" });
+    }
+    
+    const selectedDate = new Date(date);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    const nextDay = new Date(selectedDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    
+    const approvedLeaves = await LeaveRequest.find({
+      status: "Approved",
+      $or: [
+        { fromDate: { $lte: nextDay }, toDate: { $gte: selectedDate } },
+        { fromDate: { $gte: selectedDate, $lt: nextDay } },
+        { toDate: { $gte: selectedDate, $lt: nextDay } }
+      ]
+    }).populate('employeeId', 'firstName lastName employeeId');
+    
+    const employeesOnLeave = approvedLeaves.map(leave => ({
+      name: leave.name || `${leave.employeeId?.firstName || ''} ${leave.employeeId?.lastName || ''}`.trim(),
+      employeeId: leave.employeeId?.employeeId || leave.employeeId,
+      reason: leave.reason,
+      leaveCount: leave.leaveCount,
+      fromDate: leave.fromDate,
+      toDate: leave.toDate
+    }));
+    
+    res.json({ success: true, leaves: employeesOnLeave });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+});
+
 // --- PATCH: Mark leave as read when approved/rejected ---
 app.patch("/api/leave-requests/:id/approve", authenticateToken, requireHRorAdmin, async (req, res, next) => {
   try {

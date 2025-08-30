@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Demo - Employee Hub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #3a2c5c;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .demo-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .demo-header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-preview {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0c3fc 100%);
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(67, 206, 162, 0.10), 0 3px 16px rgba(118, 75, 162, 0.10);
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-header h2 {
+            font-size: 1.8rem;
+            color: #764ba2;
+            margin-bottom: 5px;
+        }
+
+        .dashboard-header .role {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .search-section {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(67,206,162,0.08);
+            padding: 16px;
+            min-width: 220px;
+            flex: 1 1 220px;
+        }
+
+        .search-card .label {
+            font-size: 1rem;
+            color: #764ba2;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .search-card input,
+        .search-card select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #d1c5e8;
+            border-radius: 8px;
+            background: #fff;
+            color: #3a2c5c;
+        }
+
+        .performance-section {
+            display: flex;
+            gap: 2rem;
+            align-items: stretch;
+            margin-bottom: 20px;
+        }
+
+        .performance-chart {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(67,206,162,0.08);
+            padding: 20px;
+            flex: 1;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .performance-chart .placeholder {
+            text-align: center;
+            color: #666;
+        }
+
+        .word-count-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            justify-content: center;
+            min-width: 180px;
+        }
+
+        .word-count-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(67,206,162,0.08);
+            padding: 16px;
+            text-align: center;
+        }
+
+        .word-count-card .count {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #764ba2;
+            margin-bottom: 8px;
+        }
+
+        .metrics-section {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .metric-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(67,206,162,0.08);
+            padding: 16px;
+            min-width: 220px;
+            flex: 1 1 220px;
+            text-align: center;
+        }
+
+        .metric-card .count {
+            font-size: 2.1rem;
+            font-weight: bold;
+            color: #764ba2;
+            margin-bottom: 8px;
+        }
+
+        .leaves-section {
+            margin-top: 20px;
+        }
+
+        .leaves-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(67,206,162,0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .leaves-card h3 {
+            margin: 0 0 1rem 0;
+            color: #764ba2;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .date-picker-section {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .date-picker-section input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid #d1c5e8;
+            border-radius: 8px;
+            background: #fff;
+            color: #3a2c5c;
+            min-width: 150px;
+        }
+
+        .date-picker-section button {
+            padding: 8px 16px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .date-picker-section button:hover {
+            background: #5a4a7a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+        }
+
+        .leave-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 4px solid #764ba2;
+            transition: all 0.3s ease;
+        }
+
+        .leave-item:hover {
+            background: #e9ecef;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(118, 75, 162, 0.15);
+        }
+
+        .leave-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .leave-info {
+            flex: 1;
+        }
+
+        .leave-name {
+            font-weight: 600;
+            color: #3a2c5c;
+            margin-bottom: 4px;
+        }
+
+        .leave-details {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .leave-duration {
+            background: #764ba2;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .no-leaves {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+            font-style: italic;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #d1c5e8;
+        }
+
+        .loading-leaves {
+            text-align: center;
+            color: #666;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .demo-features {
+            background: rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .demo-features h3 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-item {
+            background: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #43cea2;
+        }
+
+        .feature-item h4 {
+            color: #764ba2;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .feature-item p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .demo-container {
+                padding: 15px;
+            }
+
+            .search-section,
+            .performance-section,
+            .metrics-section {
+                flex-direction: column;
+            }
+
+            .performance-chart {
+                min-width: auto;
+            }
+
+            .word-count-cards {
+                min-width: auto;
+            }
+
+            .leave-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .leave-duration {
+                align-self: flex-start;
+            }
+
+            .date-picker-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .date-picker-section input[type="date"] {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="demo-header">
+            <h1>🚀 Enhanced Admin Dashboard Demo</h1>
+            <p>Employee Hub - Advanced Leave Management System</p>
+        </div>
+
+        <div class="dashboard-preview">
+            <div class="dashboard-header">
+                <h2>Welcome, Raj Kumar 👋</h2>
+                <div class="role">Administrator</div>
+            </div>
+
+            <!-- Search and Filters Section -->
+            <div class="search-section">
+                <div class="search-card">
+                    <div class="label">Search by Name</div>
+                    <input type="text" placeholder="Type employee name..." value="John Doe">
+                </div>
+                <div class="search-card">
+                    <div class="label">Employee ID</div>
+                    <input type="text" placeholder="Auto-filled by selection" value="EMP001">
+                </div>
+                <div class="search-card">
+                    <div class="label">Month & Year</div>
+                    <select>
+                        <option>August</option>
+                        <option>September</option>
+                    </select>
+                    <select style="margin-top: 8px;">
+                        <option>2025</option>
+                        <option>2024</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Performance Tracker Section -->
+            <div class="performance-section">
+                <div class="performance-chart">
+                    <div class="placeholder">
+                        📊 Performance Tracker (Word Count)<br>
+                        <small>Chart visualization will appear here</small>
+                    </div>
+                </div>
+                <div class="word-count-cards">
+                    <div class="word-count-card">
+                        <div class="count">1,250</div>
+                        <div>Today's Word Count</div>
+                    </div>
+                    <div class="word-count-card">
+                        <div class="count">28,450</div>
+                        <div>Overall Word Count (Month)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Metrics Section -->
+            <div class="metrics-section">
+                <div class="metric-card">
+                    <div class="count">22</div>
+                    <div>Total Attendance</div>
+                </div>
+                <div class="metric-card">
+                    <div class="count">3</div>
+                    <div>Total Leaves</div>
+                </div>
+                <div class="metric-card">
+                    <div class="count">1</div>
+                    <div>Total Late Entries</div>
+                </div>
+                <div class="metric-card">
+                    <div class="count">0</div>
+                    <div>Total Early Checkouts</div>
+                </div>
+            </div>
+
+            <!-- Tomorrow's Approved Leaves Section -->
+            <div class="leaves-section">
+                <div class="leaves-card">
+                    <h3>Tomorrow's Approved Leaves</h3>
+                    <div id="tomorrowLeavesList">
+                        <div class="leave-item">
+                            <div class="leave-info">
+                                <div class="leave-name">Alice Smith</div>
+                                <div class="leave-details">Personal emergency • 2 day(s)</div>
+                            </div>
+                            <div class="leave-duration">2 days</div>
+                        </div>
+                        <div class="leave-item">
+                            <div class="leave-info">
+                                <div class="leave-name">Sophia Johnson</div>
+                                <div class="leave-details">Medical appointment • 1 day(s)</div>
+                            </div>
+                            <div class="leave-duration">1 day</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check Approved Leaves by Date Section -->
+            <div class="leaves-section">
+                <div class="leaves-card">
+                    <h3>Check Approved Leaves by Date</h3>
+                    <div class="date-picker-section">
+                        <input type="date" id="leaveDatePicker" value="2025-08-28">
+                        <button id="checkLeavesBtn">Check Leaves</button>
+                    </div>
+                    <div id="dateLeavesList">
+                        <div class="leave-item">
+                            <div class="leave-info">
+                                <div class="leave-name">Alice Smith</div>
+                                <div class="leave-details">Personal emergency • 2 day(s)</div>
+                            </div>
+                            <div class="leave-duration">2 days</div>
+                        </div>
+                        <div class="leave-item">
+                            <div class="leave-info">
+                                <div class="leave-name">Sophia Johnson</div>
+                                <div class="leave-details">Medical appointment • 1 day(s)</div>
+                            </div>
+                            <div class="leave-duration">1 day</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-features">
+            <h3>✨ New Features Implemented</h3>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <h4>🔍 Enhanced Employee Search</h4>
+                    <p>Advanced search functionality with auto-complete dropdown for quick employee selection. Real-time filtering and instant results.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📊 Real-time Performance Tracking</h4>
+                    <p>Dynamic charts showing word count performance over time. Visual representation of employee productivity trends.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📅 Tomorrow's Leave Preview</h4>
+                    <p>Automatically displays all approved leaves for tomorrow. Quick overview of who will be absent the next day.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📋 Date-based Leave Lookup</h4>
+                    <p>Interactive calendar picker to check approved leaves for any specific date. Perfect for planning and resource allocation.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🎨 Modern UI/UX Design</h4>
+                    <p>Beautiful gradient backgrounds, smooth animations, and responsive design that works perfectly on all devices.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>⚡ Real-time Updates</h4>
+                    <p>All data updates in real-time. No page refreshes needed. Instant feedback and smooth user experience.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-features">
+            <h3>🛠️ Technical Implementation</h3>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <h4>🔒 Secure API Endpoints</h4>
+                    <p>New RESTful APIs for leave management with proper authentication and authorization. JWT token-based security.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>📱 Responsive Design</h4>
+                    <p>Mobile-first approach with CSS Grid and Flexbox. Optimized for all screen sizes and devices.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🎯 Performance Optimized</h4>
+                    <p>Efficient data fetching with proper error handling. Optimized database queries and caching strategies.</p>
+                </div>
+                <div class="feature-item">
+                    <h4>🔧 Easy Maintenance</h4>
+                    <p>Clean, modular code structure. Easy to extend and maintain. Well-documented functions and components.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set default date to today
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            
+            const datePicker = document.getElementById('leaveDatePicker');
+            if (datePicker) {
+                datePicker.value = `${year}-${month}-${day}`;
+            }
+
+            // Demo button click
+            const checkLeavesBtn = document.getElementById('checkLeavesBtn');
+            if (checkLeavesBtn) {
+                checkLeavesBtn.addEventListener('click', function() {
+                    alert('This is a demo! In the real application, this would fetch approved leaves for the selected date.');
+                });
+            }
+
+            // Demo date change
+            const leaveDatePicker = document.getElementById('leaveDatePicker');
+            if (leaveDatePicker) {
+                leaveDatePicker.addEventListener('change', function() {
+                    console.log('Date selected:', this.value);
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

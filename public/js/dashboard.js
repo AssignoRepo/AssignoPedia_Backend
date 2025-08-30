@@ -4395,6 +4395,11 @@ async function fetchMonthTotalWordCount(employeeId, month, year) {
 async function loadDashboard() {
   setActive("btn-dashboard");
   const employee = JSON.parse(localStorage.getItem("employee"));
+  // If admin/HR, show separate admin dashboard and exit
+  if (isAdminRole || isHRRole) {
+    await loadAdminDashboard();
+    return;
+  }
   // --- Month/Year selector logic ---
   const today = new Date();
   let selectedMonth = today.getMonth() + 1;
@@ -4714,6 +4719,415 @@ async function loadDashboard() {
   });
   // --- Initial load ---
   updateDashboard(selectedMonth, selectedYear);
+  setLogoutListener();
+  injectProfileSidebar();
+  loadRecentNotices();
+}
+
+// --- Dedicated Admin Dashboard (search any employee + performance + attendance/leave metrics) ---
+async function loadAdminDashboard() {
+  const admin = JSON.parse(localStorage.getItem("employee"));
+  const today = new Date();
+  let selectedMonth = today.getMonth() + 1;
+  let selectedYear = today.getFullYear();
+  const pad = (n) => (n < 10 ? "0" + n : n);
+
+  const monthOptions = Array.from({ length: 12 }, (_, i) => `<option value="${pad(i + 1)}" ${i + 1 === selectedMonth ? "selected" : ""}>${new Date(0, i).toLocaleString("en-IN", { month: "long" })}</option>`).join("");
+  const yearOptions = Array.from({ length: 5 }, (_, i) => {
+    const y = today.getFullYear() - i;
+    return `<option value="${y}" ${y === selectedYear ? "selected" : ""}>${y}</option>`;
+  }).join("");
+
+  mainContent.innerHTML = `
+    <div class="my-dashboard-modern dashboard-main-section" id="adminDashboardMain">
+      <div class="my-dashboard-header">
+        <h2>Welcome, <span class="my-dashboard-empname">${admin.firstName} 👋</span></h2>
+        <div class="my-dashboard-role">${admin.role}</div>
+      </div>
+      <div class="my-dashboard-summary-cards" style="margin-top:6px;">
+        <div class="my-dashboard-summary-card">
+          <div style="font-size:1rem;color:#764ba2;font-weight:600">Search by Name</div>
+          <div class="form-group" style="position:relative;margin-top:8px;">
+            <input type="text" id="dashboardSearchEmployeeName" placeholder="Type employee name..." autocomplete="off" style="padding:8px 10px;border:1px solid #d1c5e8;border-radius:8px;width:100%;color:#3a2c5c;background:#fff;"/>
+            <div id="dashboardNameSearchDropdown" style="position:absolute;left:0;right:0;top:100%;z-index:1000;"></div>
+          </div>
+        </div>
+        <div class="my-dashboard-summary-card">
+          <div class="count" style="font-size:1rem;color:#764ba2;font-weight:600">Employee ID</div>
+          <input type="text" id="dashboardSearchEmployeeId" placeholder="Auto-filled by selection" style="margin-top:8px;padding:8px 10px;border:1px solid #d1c5e8;border-radius:8px;width:100%;color:#3a2c5c;background:#fff;"/>
+        </div>
+        <div class="my-dashboard-summary-card">
+          <div style="font-size:1rem;color:#764ba2;font-weight:600">Month & Year</div>
+          <select id="adminDashboardMonth" style="margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid #d1c5e8;background:#fff;color:#3a2c5c;">${monthOptions}</select>
+          <select id="adminDashboardYear" style="margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid #d1c5e8;background:#fff;color:#3a2c5c;">${yearOptions}</select>
+        </div>
+      </div>
+
+      <div class="my-dashboard-cards" style="display:flex;gap:2rem;align-items:stretch;">
+        <div class="my-dashboard-card" style="flex:1;min-width:240px;max-width:370px;">
+          <canvas id="performanceChart"></canvas>
+          <div class="my-dashboard-card-title">Performance Tracker (Word Count)</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:1.2rem;justify-content:center;min-width:180px;max-width:220px;">
+          <div class="my-dashboard-summary-card" id="todayWordCountCard"><div class="count">-</div><div>Today's Word Count</div></div>
+          <div class="my-dashboard-summary-card" id="monthWordCountCard"><div class="count">-</div><div>Overall Word Count (Month)</div></div>
+        </div>
+      </div>
+
+      <div class="my-dashboard-summary-cards" style="margin-top:8px;">
+        <div class="my-dashboard-summary-card" id="adminAttendanceCount"><div class="count">-</div><div>Total Attendance</div></div>
+        <div class="my-dashboard-summary-card" id="adminLeaveCount"><div class="count">-</div><div>Total Leaves</div></div>
+        <div class="my-dashboard-summary-card" id="adminLateCount"><div class="count">-</div><div>Total Late Entries</div></div>
+        <div class="my-dashboard-summary-card" id="adminEarlyCheckoutCount"><div class="count">-</div><div>Total Early Checkouts</div></div>
+      </div>
+
+      <!-- Tomorrow's Approved Leaves Section -->
+      <div class="my-dashboard-leaves-section" style="margin-top: 1.5rem;">
+        <div class="my-dashboard-leaves-card">
+          <h3 style="margin: 0 0 1rem 0; color: #764ba2; font-size: 1.2rem;">Tomorrow's Approved Leaves</h3>
+          <div id="tomorrowLeavesList" style="min-height: 60px;">
+            <div style="text-align: center; color: #666; padding: 1rem;">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Check Approved Leaves by Date Section -->
+      <div class="my-dashboard-leaves-section" style="margin-top: 1.5rem;">
+        <div class="my-dashboard-leaves-card">
+          <h3 style="margin: 0 0 1rem 0; color: #764ba2; font-size: 1.2rem;">Check Approved Leaves by Date</h3>
+          <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+            <input type="date" id="leaveDatePicker" style="padding: 8px 12px; border: 1px solid #d1c5e8; border-radius: 8px; background: #fff; color: #3a2c5c;">
+            <button id="checkLeavesBtn" style="padding: 8px 16px; background: #764ba2; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Check Leaves</button>
+          </div>
+          <div id="dateLeavesList" style="min-height: 60px;">
+            <div style="text-align: center; color: #666; padding: 1rem;">Select a date to check approved leaves</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (!document.getElementById("adminDashboardStyle")) {
+    const style = document.createElement("style");
+    style.id = "adminDashboardStyle";
+    style.textContent = `
+      .my-dashboard-modern { background: linear-gradient(135deg, #f8fafc 0%, #e0c3fc 100%); border-radius: 18px; box-shadow: 0 8px 32px rgba(67, 206, 162, 0.10), 0 3px 16px rgba(118, 75, 162, 0.10); padding: 18px 24px; width: 100%; color: #3a2c5c; font-family: 'Segoe UI','Roboto',Arial,sans-serif; max-height: 92vh; overflow-y: auto; }
+      .my-dashboard-header { display:flex; flex-direction:column; align-items:flex-start; margin-bottom: 12px; }
+      .my-dashboard-summary-cards { display:flex; gap:1.5rem; margin-bottom: 12px; flex-wrap:wrap; }
+      .my-dashboard-summary-card { background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(67,206,162,0.08); padding: 12px; min-width:220px; flex:1 1 220px; }
+      .my-dashboard-summary-card .count { font-size:2.1rem; font-weight:bold; color:#764ba2; margin-bottom:4px; }
+      .my-dashboard-card { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(67,206,162,0.08); padding: 18px 10px 10px 10px; flex:1 1 320px; min-width:240px; max-width:370px; display:flex; flex-direction:column; align-items:center; max-height:320px; overflow:hidden; }
+      .my-dashboard-card canvas { width:100% !important; height:220px !important; }
+      
+      /* Leave Management Styles */
+      .my-dashboard-leaves-section { width: 100%; }
+      .my-dashboard-leaves-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(67,206,162,0.08); padding: 20px; }
+      .my-dashboard-leaves-card h3 { margin: 0 0 1rem 0; color: #764ba2; font-size: 1.2rem; font-weight: 600; }
+      
+      .leave-item { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 12px 16px; 
+        background: #f8f9fa; 
+        border-radius: 8px; 
+        margin-bottom: 8px; 
+        border-left: 4px solid #764ba2;
+        transition: all 0.3s ease;
+      }
+      .leave-item:hover { 
+        background: #e9ecef; 
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(118, 75, 162, 0.15);
+      }
+      .leave-item:last-child { margin-bottom: 0; }
+      
+      .leave-info { flex: 1; }
+      .leave-name { font-weight: 600; color: #3a2c5c; margin-bottom: 4px; }
+      .leave-details { font-size: 0.9rem; color: #666; }
+      .leave-duration { background: #764ba2; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 500; }
+      
+      .no-leaves { 
+        text-align: center; 
+        color: #666; 
+        padding: 2rem; 
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border: 2px dashed #d1c5e8;
+      }
+      
+      .loading-leaves { 
+        text-align: center; 
+        color: #666; 
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+      
+      #checkLeavesBtn:hover { 
+        background: #5a4a7a; 
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(118, 75, 162, 0.3);
+      }
+      
+      #leaveDatePicker { 
+        min-width: 150px;
+        cursor: pointer;
+      }
+      
+      #leaveDatePicker:focus { 
+        outline: none; 
+        border-color: #764ba2; 
+        box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
+      }
+      
+      @media (max-width: 768px) {
+        .my-dashboard-leaves-card { padding: 16px; }
+        .leave-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+        .leave-duration { align-self: flex-start; }
+        #leaveDatePicker { min-width: 120px; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  (function attachAdminDashboardNameSearch(){
+    const nameInput = document.getElementById("dashboardSearchEmployeeName");
+    const idInput = document.getElementById("dashboardSearchEmployeeId");
+    const dropdown = document.getElementById("dashboardNameSearchDropdown");
+    if (!nameInput || !idInput || !dropdown) return;
+    let cache = [];
+    async function ensureCache(){
+      if (cache.length) return;
+      try {
+        const res = await fetch('/api/employees', { headers:{ Authorization:`Bearer ${localStorage.getItem('jwtToken')}` }});
+        const data = await res.json();
+        if (data.success && Array.isArray(data.employees)) {
+          cache = data.employees.map(e=>({ id:e.employeeId, name:`${e.firstName||''} ${e.lastName||''}`.trim() }));
+        }
+      } catch(_e){}
+    }
+    nameInput.addEventListener('focus', ensureCache);
+    nameInput.addEventListener('keyup', function(){
+      const term = nameInput.value.toLowerCase().trim();
+      if (!term) { dropdown.innerHTML = ''; return; }
+      const filtered = cache.filter(e=> e.name.toLowerCase().includes(term));
+      dropdown.innerHTML = filtered.map(e=>`<div data-id="${e.id}" data-name="${e.name}" style="padding:6px 12px;background:#fff;border:1px solid #eee;border-top:none;cursor:pointer;">${e.name} <span style='color:#764ba2;font-weight:600;'>(${e.id})</span></div>`).join('');
+    });
+    dropdown.addEventListener('click', (ev)=>{
+      const item = ev.target.closest('div[data-id]');
+      if (!item) return;
+      idInput.value = item.dataset.id;
+      nameInput.value = item.dataset.name;
+      dropdown.innerHTML = '';
+      triggerUpdate();
+    });
+    document.addEventListener('click', (e)=>{ if (!dropdown.contains(e.target) && e.target!==nameInput) dropdown.innerHTML=''; });
+  })();
+
+  async function fetchSummaryForEmployee(empId, month, year){
+    try {
+      const res = await fetch(`/api/attendance-summary?employeeId=${encodeURIComponent(empId)}&month=${pad(month)}&year=${year}`, { headers:{ Authorization:`Bearer ${localStorage.getItem('jwtToken')}` }});
+      if (!res.ok) return null;
+      return await res.json();
+    } catch(_e){ return null; }
+  }
+
+  async function updateAdminCards(empId, month, year){
+    const attEl = document.getElementById('adminAttendanceCount');
+    const leaveEl = document.getElementById('adminLeaveCount');
+    const lateEl = document.getElementById('adminLateCount');
+    const earlyEl = document.getElementById('adminEarlyCheckoutCount');
+    [attEl, leaveEl, lateEl, earlyEl].forEach(el=>{ if (el && el.querySelector('.count')) el.querySelector('.count').textContent='...'; });
+    const data = await fetchSummaryForEmployee(empId, month, year);
+    if (!data || !data.success) {
+      [attEl, leaveEl, lateEl, earlyEl].forEach(el=>{ if (el && el.querySelector('.count')) el.querySelector('.count').textContent='-'; });
+      return;
+    }
+    const days = Array.isArray(data.days) ? data.days : [];
+    const attendanceCount = (typeof data.attendanceCount === 'number') ? data.attendanceCount : days.filter(d=>d.attendanceStatus==='Present').length;
+    // Robust paid/unpaid extraction with fallbacks, then sum
+    const paidLeaves =
+      (typeof data.paidLeaves === 'number' ? data.paidLeaves :
+      (typeof data.paidLeaveCount === 'number' ? data.paidLeaveCount :
+      days.filter(d=>d.leaveType === 'Paid').length));
+    const unpaidLeaves =
+      (typeof data.unpaidLeaves === 'number' ? data.unpaidLeaves :
+      (typeof data.unpaidLeaveCount === 'number' ? data.unpaidLeaveCount :
+      days.filter(d=>d.leaveType === 'Unpaid').length));
+    const leaveCount = paidLeaves + unpaidLeaves;
+    const lateCount = (typeof data.lateCount === 'number') ? data.lateCount : days.filter(d=>d.late || d.isLate || d.lateEntry).length;
+    const earlyCount = (typeof data.earlyCheckoutCount === 'number') ? data.earlyCheckoutCount : days.filter(d=>d.earlyCheckout || d.isEarlyCheckout).length;
+    if (attEl && attEl.querySelector('.count')) attEl.querySelector('.count').textContent = attendanceCount;
+    if (leaveEl && leaveEl.querySelector('.count')) leaveEl.querySelector('.count').textContent = leaveCount;
+    if (lateEl && lateEl.querySelector('.count')) lateEl.querySelector('.count').textContent = lateCount;
+    if (earlyEl && earlyEl.querySelector('.count')) earlyEl.querySelector('.count').textContent = earlyCount;
+  }
+
+  async function updateAdminChart(empId, month, year){
+    const el = document.getElementById('performanceChart');
+    if (!el || !el.getContext) return;
+    const wordCounts = await fetchWordCounts(empId, pad(month), year);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const labels = [], values = [];
+    const map = {};
+    function toISTDateString(date){ const IST_OFFSET = 5.5*60*60*1000; const ist=new Date(date.getTime()+IST_OFFSET); return `${ist.getFullYear()}-${String(ist.getMonth()+1).padStart(2,'0')}-${String(ist.getDate()).padStart(2,'0')}`; }
+    wordCounts.forEach(wc=>{ const d=new Date(wc.date); map[toISTDateString(d)] = wc.wordCount; });
+    for (let d=1; d<=daysInMonth; d++){ const dt=new Date(year, month-1, d); const key=toISTDateString(dt); labels.push(dt.toLocaleDateString('en-IN',{month:'short',day:'numeric'})); values.push(map[key]||0); }
+    const ctx = el.getContext('2d');
+    if (window.performanceChartInstance) window.performanceChartInstance.destroy();
+    window.performanceChartInstance = new Chart(ctx, { type:'line', data:{ labels, datasets:[{ label:'Words Written', data:values, borderColor:'#43cea2', backgroundColor:'rgba(67,206,162,0.15)', fill:true, tension:0.3, pointRadius:3 }] }, options:{ plugins:{ legend:{display:false} }, scales:{ y:{ beginAtZero:true } }, responsive:true, maintainAspectRatio:false, aspectRatio:2.2 } });
+    const todayCnt = await fetchTodayWordCount(empId);
+    const monthTotal = values.reduce((s,v)=>s+v,0);
+    const todayCard = document.getElementById('todayWordCountCard');
+    const monthCard = document.getElementById('monthWordCountCard');
+    if (todayCard && todayCard.querySelector('.count')) todayCard.querySelector('.count').textContent = todayCnt;
+    if (monthCard && monthCard.querySelector('.count')) monthCard.querySelector('.count').textContent = monthTotal;
+  }
+
+  async function triggerUpdate(){
+    const empId = document.getElementById('dashboardSearchEmployeeId').value.trim();
+    const m = parseInt(document.getElementById('adminDashboardMonth').value, 10);
+    const y = parseInt(document.getElementById('adminDashboardYear').value, 10);
+    if (!empId) return;
+    await updateAdminChart(empId, m, y);
+    await updateAdminCards(empId, m, y);
+    
+    // Load tomorrow's leaves when dashboard loads
+    await loadTomorrowLeaves();
+  }
+
+  // Load tomorrow's approved leaves
+  async function loadTomorrowLeaves() {
+    try {
+      const tomorrowLeavesList = document.getElementById('tomorrowLeavesList');
+      if (!tomorrowLeavesList) return;
+      
+      tomorrowLeavesList.innerHTML = '<div class="loading-leaves">Loading tomorrow\'s leaves...</div>';
+      
+      const response = await fetch('/api/leaves/tomorrow', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwtToken')}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tomorrow\'s leaves');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.leaves && data.leaves.length > 0) {
+        const leavesHTML = data.leaves.map(leave => `
+          <div class="leave-item">
+            <div class="leave-info">
+              <div class="leave-name">${leave.name}</div>
+              <div class="leave-details">${leave.reason} • ${leave.leaveCount} day(s)</div>
+            </div>
+            <div class="leave-duration">${leave.leaveCount} day${leave.leaveCount > 1 ? 's' : ''}</div>
+          </div>
+        `).join('');
+        
+        tomorrowLeavesList.innerHTML = leavesHTML;
+      } else {
+        tomorrowLeavesList.innerHTML = '<div class="no-leaves">No approved leaves for tomorrow</div>';
+      }
+    } catch (error) {
+      console.error('Error loading tomorrow\'s leaves:', error);
+      const tomorrowLeavesList = document.getElementById('tomorrowLeavesList');
+      if (tomorrowLeavesList) {
+        tomorrowLeavesList.innerHTML = '<div class="no-leaves">Error loading leaves. Please try again.</div>';
+      }
+    }
+  }
+
+  // Check approved leaves for a specific date
+  async function checkLeavesByDate(selectedDate) {
+    try {
+      const dateLeavesList = document.getElementById('dateLeavesList');
+      if (!dateLeavesList) return;
+      
+      dateLeavesList.innerHTML = '<div class="loading-leaves">Loading leaves for selected date...</div>';
+      
+      const response = await fetch(`/api/leaves/by-date?date=${selectedDate}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwtToken')}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch leaves for selected date');
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.leaves && data.leaves.length > 0) {
+        const leavesHTML = data.leaves.map(leave => `
+          <div class="leave-item">
+            <div class="leave-info">
+              <div class="leave-name">${leave.name}</div>
+              <div class="leave-details">${leave.reason} • ${leave.leaveCount} day(s)</div>
+            </div>
+            <div class="leave-duration">${leave.leaveCount} day${leave.leaveCount > 1 ? 's' : ''}</div>
+          </div>
+        `).join('');
+        
+        dateLeavesList.innerHTML = leavesHTML;
+      } else {
+        dateLeavesList.innerHTML = '<div class="no-leaves">No approved leaves for the selected date</div>';
+      }
+    } catch (error) {
+      console.error('Error checking leaves by date:', error);
+      const dateLeavesList = document.getElementById('dateLeavesList');
+      if (dateLeavesList) {
+        dateLeavesList.innerHTML = '<div class="no-leaves">Error loading leaves. Please try again.</div>';
+      }
+    }
+  }
+
+  // Set default date to today for the date picker
+  function setDefaultDate() {
+    const datePicker = document.getElementById('leaveDatePicker');
+    if (datePicker) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      datePicker.value = `${year}-${month}-${day}`;
+    }
+  }
+
+  // Attach event listeners for leave management
+  function attachLeaveManagementEvents() {
+    const checkLeavesBtn = document.getElementById('checkLeavesBtn');
+    const leaveDatePicker = document.getElementById('leaveDatePicker');
+    
+    if (checkLeavesBtn) {
+      checkLeavesBtn.addEventListener('click', () => {
+        const selectedDate = leaveDatePicker.value;
+        if (selectedDate) {
+          checkLeavesByDate(selectedDate);
+        } else {
+          alert('Please select a date first');
+        }
+      });
+    }
+    
+    if (leaveDatePicker) {
+      leaveDatePicker.addEventListener('change', () => {
+        const selectedDate = leaveDatePicker.value;
+        if (selectedDate) {
+          checkLeavesByDate(selectedDate);
+        }
+      });
+    }
+  }
+
+  // Initialize leave management
+  setDefaultDate();
+  attachLeaveManagementEvents();
+  await loadTomorrowLeaves();
+
+  document.getElementById('adminDashboardMonth').addEventListener('change', triggerUpdate);
+  document.getElementById('adminDashboardYear').addEventListener('change', triggerUpdate);
+
   setLogoutListener();
   injectProfileSidebar();
   loadRecentNotices();
