@@ -1381,14 +1381,20 @@ app.post("/api/word-count", authenticateToken, requireHRorAdminOrTeamLeader, asy
     if (!employee) {
       return res.status(404).json({ success: false, message: "Employee ID not found. Word count not recorded." });
     }
-    // Normalize to IST midnight
-    const inputDate = new Date(date);
-    // Convert to IST midnight
-    const istMidnight = new Date(inputDate.getTime());
-    istMidnight.setHours(0, 0, 0, 0); // Set to local midnight
-    // Adjust for IST offset
+    // Normalize to IST midnight deterministically from the provided calendar date (YYYY-MM-DD)
     const IST_OFFSET = 5.5 * 60 * 60 * 1000;
-    const utcMidnight = new Date(istMidnight.getTime() - IST_OFFSET);
+    let utcMidnight;
+    if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const [y, m, d] = date.split('-').map(Number);
+      // IST midnight for (y-m-d) corresponds to UTC time: Date.UTC(y,m-1,d) - IST_OFFSET
+      utcMidnight = new Date(Date.UTC(y, m - 1, d) - IST_OFFSET);
+    } else {
+      // Fallback for non-standard input; coerce to Date then back to IST midnight
+      const inputDate = new Date(date);
+      const istMidnight = new Date(inputDate.getTime());
+      istMidnight.setHours(0, 0, 0, 0);
+      utcMidnight = new Date(istMidnight.getTime() - IST_OFFSET);
+    }
     // Find existing word count for this employee and date
     let existing = await WordCount.findOne({ employeeId, date: utcMidnight });
     let newWordCount = wordCount;
@@ -1419,11 +1425,12 @@ app.get("/api/word-count", authenticateToken, async (req, res) => {
     // --- IST month range logic ---
     function getISTMonthRangeUTC(year, month) {
       // month: 1-based (1=Jan)
-      const startIST = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
-      const endIST = new Date(Date.UTC(year, month, 1, 0, 0, 0));
-      const IST_OFFSET_MINUTES = 330;
-      const startUTC = new Date(startIST.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
-      const endUTC = new Date(endIST.getTime() - IST_OFFSET_MINUTES * 60 * 1000);
+      // All word-count docs are stored at UTC = IST_midnight - offset
+      // So the correct query range in UTC is:
+      //   [ Date.UTC(y, m-1, 1) - IST_OFFSET, Date.UTC(y, m, 1) - IST_OFFSET )
+      const IST_OFFSET_MS = 330 * 60 * 1000;
+      const startUTC = new Date(Date.UTC(year, month - 1, 1) - IST_OFFSET_MS);
+      const endUTC = new Date(Date.UTC(year, month, 1) - IST_OFFSET_MS);
       return { startUTC, endUTC };
     }
     const y = parseInt(year);
@@ -1433,7 +1440,19 @@ app.get("/api/word-count", authenticateToken, async (req, res) => {
       employeeId,
       date: { $gte: startUTC, $lt: endUTC },
     }).sort({ date: 1 });
-    res.json({ success: true, wordCounts });
+    // Normalize payload: add IST day to avoid client-side timezone ambiguity
+    const IST_OFFSET_MS = 330 * 60 * 1000;
+    const normalized = wordCounts.map(wc => {
+      const d = new Date(wc.date);
+      const ist = new Date(d.getTime() + IST_OFFSET_MS);
+      const y = ist.getFullYear();
+      const m = ist.getMonth() + 1;
+      const day = ist.getDate();
+      const dateISO = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      return { _id: wc._id, employeeId: wc.employeeId, date: wc.date, wordCount: wc.wordCount, year: y, month: m, day, dateISO };
+    });
+    console.log("normalized",normalized);
+    res.json({ success: true, wordCounts: normalized });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
   }
@@ -2051,22 +2070,26 @@ app.get("/api/leave-unread-count", authenticateToken, requireHRorAdmin, async (r
 // --- GET: Get approved leaves for tomorrow ---
 app.get("/api/leaves/tomorrow", authenticateToken, requireHRorAdmin, async (req, res) => {
   try {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    
-    const nextDay = new Date(tomorrow);
-    nextDay.setDate(nextDay.getDate() + 1);
-    
+    // Compute tomorrow's day range in IST and convert to UTC for querying
+    const IST_OFFSET_MS = 330 * 60 * 1000; // +05:30
+    const nowUTC = new Date();
+    const nowIST = new Date(nowUTC.getTime() + IST_OFFSET_MS);
+    const y = nowIST.getFullYear();
+    const m = nowIST.getMonth(); // 0-based
+    const d = nowIST.getDate();
+    // Start of today IST in UTC
+    const startTodayUTC = new Date(Date.UTC(y, m, d) - IST_OFFSET_MS);
+    // Start of tomorrow IST in UTC
+    const startTomorrowUTC = new Date(startTodayUTC.getTime() + 24 * 60 * 60 * 1000);
+    const endTomorrowUTC = new Date(startTomorrowUTC.getTime() + 24 * 60 * 60 * 1000);
+
     const approvedLeaves = await LeaveRequest.find({
       status: "Approved",
-      $or: [
-        { fromDate: { $lte: nextDay }, toDate: { $gte: tomorrow } },
-        { fromDate: { $gte: tomorrow, $lt: nextDay } },
-        { toDate: { $gte: tomorrow, $lt: nextDay } }
-      ]
+      // Any leave overlapping tomorrow (IST): fromDate <= endTomorrow && toDate >= startTomorrow
+      fromDate: { $lte: endTomorrowUTC },
+      toDate:   { $gte: startTomorrowUTC }
     }).populate('employeeId', 'firstName lastName employeeId');
-    
+
     const employeesOnLeave = approvedLeaves.map(leave => ({
       name: leave.name || `${leave.employeeId?.firstName || ''} ${leave.employeeId?.lastName || ''}`.trim(),
       employeeId: leave.employeeId?.employeeId || leave.employeeId,
@@ -2075,7 +2098,7 @@ app.get("/api/leaves/tomorrow", authenticateToken, requireHRorAdmin, async (req,
       fromDate: leave.fromDate,
       toDate: leave.toDate
     }));
-    
+
     res.json({ success: true, leaves: employeesOnLeave });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
@@ -2089,22 +2112,28 @@ app.get("/api/leaves/by-date", authenticateToken, requireHRorAdmin, async (req, 
     if (!date) {
       return res.status(400).json({ success: false, message: "Date parameter is required" });
     }
-    
-    const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
-    
-    const nextDay = new Date(selectedDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-    
+
+    // Expecting YYYY-MM-DD from the client; interpret as IST day
+    const IST_OFFSET_MS = 330 * 60 * 1000; // +05:30
+    let y, m, d;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      const parts = date.split('-').map(Number);
+      y = parts[0]; m = parts[1] - 1; d = parts[2];
+    } else {
+      // Fallback to Date parsing, then convert to IST components
+      const parsed = new Date(date);
+      const ist = new Date(parsed.getTime() + IST_OFFSET_MS);
+      y = ist.getFullYear(); m = ist.getMonth(); d = ist.getDate();
+    }
+    const startUTC = new Date(Date.UTC(y, m, d) - IST_OFFSET_MS);
+    const endUTC = new Date(startUTC.getTime() + 24 * 60 * 60 * 1000);
+
     const approvedLeaves = await LeaveRequest.find({
       status: "Approved",
-      $or: [
-        { fromDate: { $lte: nextDay }, toDate: { $gte: selectedDate } },
-        { fromDate: { $gte: selectedDate, $lt: nextDay } },
-        { toDate: { $gte: selectedDate, $lt: nextDay } }
-      ]
+      fromDate: { $lte: endUTC },
+      toDate:   { $gte: startUTC }
     }).populate('employeeId', 'firstName lastName employeeId');
-    
+
     const employeesOnLeave = approvedLeaves.map(leave => ({
       name: leave.name || `${leave.employeeId?.firstName || ''} ${leave.employeeId?.lastName || ''}`.trim(),
       employeeId: leave.employeeId?.employeeId || leave.employeeId,
@@ -2113,7 +2142,7 @@ app.get("/api/leaves/by-date", authenticateToken, requireHRorAdmin, async (req, 
       fromDate: leave.fromDate,
       toDate: leave.toDate
     }));
-    
+
     res.json({ success: true, leaves: employeesOnLeave });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });

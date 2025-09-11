@@ -572,7 +572,7 @@ function renderPaySlipHTML(slip, isPreviewOnly = false) {
       <tr><td>Leave Deduction (DNPL)</td><td>${slip.dnplDeduction || '0.00'}</td></tr>
       <tr><td>Leave Deduction (NPL)</td><td>${slip.nplDeduction || '0.00'}</td></tr>
       <tr><th>Total Deductions</th>
-        <th>
+        <th>   
           ${isPreviewOnly
             ? `<input id="editTotalDeductions" type="number" value="${slip.totalDeductions || '0.00'}" style="width:120px;">`
             : (slip.totalDeductions || '0.00')}
@@ -5259,19 +5259,35 @@ async function showTeamPerformanceBarChart(teamMembers, selectedMemberId, month,
   } else {
     // --- LINE CHART for single member daily trend ---
     chartType = "line";
-    const member = teamMembers.find(m => m.employeeId === selectedMemberId);
-    chartTitle = `${member.firstName || member.name || member.employeeId}'s Daily Word Count (Current Month)`;
-    const res = await fetch(`/api/word-count?employeeId=${selectedMemberId}&month=${month}&year=${year}`, {
+    const member = teamMembers.find(m => String(m.employeeId) === String(selectedMemberId));
+    const memberLabel = member ? (member.firstName || member.name || member.employeeId) : String(selectedMemberId);
+    chartTitle = `${memberLabel}'s Daily Word Count (Current Month)`;
+    const res = await fetch(`/api/word-count?employeeId=${encodeURIComponent(String(selectedMemberId))}&month=${Number(month)}&year=${year}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("jwtToken")}` }
     });
     const data = await res.json();
-    const daysInMonth = new Date(year, month, 0).getDate();
+    const daysInMonth = new Date(year, Number(month), 0).getDate();
     chartLabels = Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
     const wordCountsByDay = Array(daysInMonth).fill(0);
-    if (data.success && data.wordCounts) {
+    if (data.success && Array.isArray(data.wordCounts)) {
+      const IST_OFFSET = 5.5 * 60 * 60 * 1000;
       data.wordCounts.forEach(wc => {
-        const day = new Date(wc.date).getDate();
-        wordCountsByDay[day - 1] = wc.wordCount;
+        if (!wc) return;
+        let day = wc.day;
+        // Final fallback: compute day from dateISO or date
+        if (!day && wc.dateISO) {
+          const parts = wc.dateISO.split('-');
+          if (parts.length === 3) day = Number(parts[2]);
+        }
+        if (!day && wc.date) {
+          const d = new Date(wc.date);
+          const ist = new Date(d.getTime() + IST_OFFSET);
+          day = ist.getDate();
+        }
+        if (day && day >= 1 && day <= daysInMonth) {
+          const value = Number(wc.wordCount) || 0;
+          wordCountsByDay[day - 1] = value;
+        }
       });
     }
     chartData = {
@@ -5284,6 +5300,8 @@ async function showTeamPerformanceBarChart(teamMembers, selectedMemberId, month,
         fill: true,
         tension: 0.3,
         pointRadius: 4,
+        borderWidth: 2,
+        spanGaps: false,
       }]
     };
     chartOptions = {
