@@ -648,7 +648,7 @@ async function loadBlogManager() {
 
             <div class="bm-form-group bm-col-span-2">
               <label for="excerpt" class="bm-label">Excerpt/Summary <span class="required">*</span></label>
-              <textarea name="excerpt" id="excerpt" class="bm-textarea" rows="3" placeholder="Write a brief summary (max 200 characters)" maxlength="200" required></textarea>
+              <textarea name="excerpt" id="excerpt" class="bm-textarea" rows="3" placeholder="Write a brief summary (max 200 characters)" maxlength="800" required></textarea>
               <small class="bm-hint">This appears as a preview on the blog listing page</small>
             </div>
 
