@@ -1685,37 +1685,71 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    // Sample holiday list (to be replaced with actual holidays later)
-    const holidays = [
-      "2024-01-01", // New Year's Day
-      "2024-01-26", // Republic Day
-      "2024-03-25", // Holi
-      "2024-04-09", // Ram Navami
-      "2024-05-01", // Labor Day
-      "2024-08-15", // Independence Day
-      "2024-10-02", // Gandhi Jayanti
-      "2024-12-25", // Christmas
-    ];
+    // Dynamic holidays: prefetch for current and next year; fallback to empty set
+    const holidaysSet = new Set();
+    async function fetchHolidaysForYear(year) {
+      try {
+        const token = localStorage.getItem("jwtToken");
+        const res = await fetch(`/api/holidays?year=${year}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data?.holidays) ? data.holidays : Array.isArray(data) ? data : [];
+          list.forEach((d) => {
+            if (typeof d === "string") holidaysSet.add(d);
+            if (d && typeof d.date === "string") holidaysSet.add(d.date);
+          });
+        }
+      } catch (_) {
+        // ignore; fallback is empty set
+      }
+    }
+    const now = new Date();
+    const year = now.getFullYear();
+    await Promise.all([fetchHolidaysForYear(year), fetchHolidaysForYear(year + 1)]);
 
     // Function to check if a date is a holiday
     const isHoliday = (date) => {
       const dateStr = date.toISOString().split("T")[0];
-      return holidays.includes(dateStr);
+      return holidaysSet.has(dateStr);
     };
 
-    // Function to create date without timezone issues
+    // Function to create date without timezone issues (supports YYYY-MM-DD and MM/DD/YYYY)
     const createDate = (dateStr) => {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      return new Date(year, month - 1, day);
+      if (!dateStr) return new Date(NaN);
+      // Normalize whitespace
+      const s = String(dateStr).trim();
+      // Pattern 1: YYYY-MM-DD
+      const isoMatch = /^\d{4}-\d{2}-\d{2}$/.test(s);
+      if (isoMatch) {
+        const [y, m, d] = s.split("-").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      // Pattern 2: MM/DD/YYYY
+      const usMatch = /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s);
+      if (usMatch) {
+        const [m, d, y] = s.split("/").map(Number);
+        return new Date(y, m - 1, d);
+      }
+      // Fallback: let Date parse and then normalize to local midnight
+      const parsed = new Date(s);
+      if (isNaN(parsed.getTime())) return parsed;
+      return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
     };
 
     // Function to calculate working days between two dates (inclusive)
     const calculateWorkingDays = (startDate, endDate) => {
+      // Normalize to midday to avoid timezone edge cases on DST/UTC shifts
+      const makeMidday = (d) => {
+        const nd = new Date(d);
+        nd.setHours(12, 0, 0, 0);
+        return nd;
+      };
       let count = 0;
-      const currentDate = new Date(startDate);
-      const lastDate = new Date(endDate);
+      const currentDate = makeMidday(startDate);
+      const lastDate = makeMidday(endDate);
       while (currentDate <= lastDate) {
-        // Skip Sundays (0) and holidays
         if (currentDate.getDay() !== 0 && !isHoliday(currentDate)) {
           count++;
         }
@@ -1731,6 +1765,23 @@ document.addEventListener("DOMContentLoaded", () => {
       const singleDateInput = document.querySelector('input[name="singleDate"]');
       const fromDateInput = document.querySelector('input[name="fromDate"]');
       const toDateInput = document.querySelector('input[name="toDate"]');
+      // If both range dates are set, always prioritize range logic and recalc
+      if (fromDateInput.value && toDateInput.value) {
+        const fromDate = createDate(fromDateInput.value);
+        const toDate = createDate(toDateInput.value);
+        if (fromDate > toDate) {
+          alert("From date cannot be after To date");
+          fromDateInput.value = "";
+          toDateInput.value = "";
+          return;
+        }
+        const workingDays = calculateWorkingDays(fromDate, toDate);
+        // Always at least 1 day for any valid range selection
+        leaveCountInput.value = Math.max(1, workingDays);
+        // Clear any single-day validation if coming from that state
+        singleDateInput.setCustomValidity("");
+        return;
+      }
 
       if (leaveCount === 1 && singleDateInput.value) {
         const selectedDate = createDate(singleDateInput.value);
@@ -1739,28 +1790,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Check if it's Sunday (0) or holiday
         if (selectedDate.getDay() === 0 || isHoliday(selectedDate)) {
-          alert("Cannot apply leave on Sunday or holiday");
+          // Use input validation instead of disruptive alert; allow user to change selection
+          singleDateInput.setCustomValidity("Cannot apply leave on Sunday or holiday");
+          singleDateInput.reportValidity();
           singleDateInput.value = "";
-          leaveCountInput.value = "0";
           return;
         } else {
           // If it's a valid working day, set leave count to 1
           leaveCountInput.value = "1";
         }
-      } else if (leaveCount > 1 && fromDateInput.value && toDateInput.value) {
-        const fromDate = createDate(fromDateInput.value);
-        const toDate = createDate(toDateInput.value);
-
-        if (fromDate > toDate) {
-          alert("From date cannot be after To date");
-          fromDateInput.value = "";
-          toDateInput.value = "";
-          return;
-        }
-
-        // Calculate and update leave count based on selected dates (inclusive, working days only)
-        const workingDays = calculateWorkingDays(fromDate, toDate);
-        leaveCountInput.value = workingDays;
       }
     };
 
@@ -1784,12 +1822,27 @@ document.addEventListener("DOMContentLoaded", () => {
         singleDateInput.required = true;
         fromDateInput.required = false;
         toDateInput.required = false;
+        // Clear range inputs and any previous validation
+        fromDateInput.value = "";
+        toDateInput.value = "";
+        singleDateInput.setCustomValidity("");
       } else if (leaveCount > 1) {
         singleDateSection.style.display = "none";
         dateRangeSection.style.display = "flex";
         singleDateInput.required = false;
         fromDateInput.required = true;
         toDateInput.required = true;
+        // If dates already selected, recalculate working days to correct any manual count
+        if (fromDateInput.value && toDateInput.value) {
+          const fromDate = createDate(fromDateInput.value);
+          const toDate = createDate(toDateInput.value);
+          if (fromDate <= toDate) {
+            const workingDays = calculateWorkingDays(fromDate, toDate);
+            document.getElementById("leaveCountInput").value = workingDays;
+          }
+        }
+        // Clear any single-day validation when switching to range
+        singleDateInput.setCustomValidity("");
       } else {
         singleDateSection.style.display = "none";
         dateRangeSection.style.display = "none";
@@ -1803,6 +1856,25 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelector('input[name="singleDate"]').addEventListener("change", handleDateChange);
     document.querySelector('input[name="fromDate"]').addEventListener("change", handleDateChange);
     document.querySelector('input[name="toDate"]').addEventListener("change", handleDateChange);
+
+    // Also recalc on manual typing in date inputs to keep count in sync
+    document.querySelectorAll('input[name="singleDate"], input[name="fromDate"], input[name="toDate"]').forEach((el) => {
+      el.addEventListener("input", handleDateChange);
+    });
+
+    // Also recalc when user types directly in leaveCount (to correct accidental values)
+    document.getElementById("leaveCountInput").addEventListener("input", () => {
+      const fromDateInput = document.querySelector('input[name="fromDate"]');
+      const toDateInput = document.querySelector('input[name="toDate"]');
+      if (fromDateInput.value && toDateInput.value) {
+        const fromDate = createDate(fromDateInput.value);
+        const toDate = createDate(toDateInput.value);
+        if (fromDate <= toDate) {
+          const workingDays = calculateWorkingDays(fromDate, toDate);
+          document.getElementById("leaveCountInput").value = workingDays;
+        }
+      }
+    });
 
     // Also add event listener for leave count input to handle initial value
     document.getElementById("leaveCountInput").addEventListener("change", function () {
@@ -1865,13 +1937,39 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("leaveForm").onsubmit = async function (e) {
       e.preventDefault();
       const form = e.target;
-      const leaveCount = parseInt(form.leaveCount.value);
+      let leaveCount = parseInt(form.leaveCount.value);
       // Use FormData for file upload
       const formData = new FormData();
       formData.append("reason", form.Reason.value);
+      // Recalculate leaveCount on submit to enforce correctness
+      const fd = form.fromDate.value;
+      const td = form.toDate.value;
+      const sd = form.singleDate.value;
+      if (fd && td) {
+        const fromDate = createDate(fd);
+        const toDate = createDate(td);
+        if (fromDate > toDate) {
+          alert("From date cannot be after To date");
+          return;
+        }
+        const workingDays = calculateWorkingDays(fromDate, toDate);
+        leaveCount = Math.max(1, workingDays);
+        formData.append("fromDate", fd);
+        formData.append("toDate", td);
+      } else if (sd) {
+        const d = createDate(sd);
+        if (d.getDay() === 0 || isHoliday(d)) {
+          alert("Cannot apply leave on Sunday or holiday");
+          return;
+        }
+        formData.append("fromDate", sd);
+        formData.append("toDate", sd);
+        leaveCount = 1;
+      } else {
+        alert("Please select a date range or a single date");
+        return;
+      }
       formData.append("leaveCount", leaveCount);
-      formData.append("fromDate", leaveCount === 1 ? form.singleDate.value : form.fromDate.value);
-      formData.append("toDate", leaveCount === 1 ? form.singleDate.value : form.toDate.value);
       formData.append("comments", form.reasonComment.value);
       // Attach image if selected
       const imageFile = document.getElementById("imageUpload").files[0];
@@ -1883,6 +1981,7 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("attachment", imageFile);
       }
       try {
+        const token = localStorage.getItem("jwtToken");
         const res = await fetch("/api/leave-requests", {
           method: "POST",
           headers: {
@@ -5411,6 +5510,64 @@ function loadWFHRequest() {
   const countInput = document.getElementById("count");
   const calendarContainer = document.getElementById("calendar-container");
 
+  // Dynamic holidays: fetch for current and next year (reuse leave logic)
+  const wfhHolidaysSet = new Set();
+  async function fetchWFHHolidaysForYear(year) {
+    try {
+      const token = localStorage.getItem("jwtToken");
+      const res = await fetch(`/api/holidays?year=${year}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data?.holidays) ? data.holidays : Array.isArray(data) ? data : [];
+        list.forEach((d) => {
+          if (typeof d === "string") wfhHolidaysSet.add(d);
+          if (d && typeof d.date === "string") wfhHolidaysSet.add(d.date);
+        });
+      }
+    } catch (_) {
+      // ignore
+    }
+  }
+  (async () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    await Promise.all([fetchWFHHolidaysForYear(y), fetchWFHHolidaysForYear(y + 1)]);
+  })();
+
+  // Helpers mirroring leave request
+  const wfhIsHoliday = (date) => {
+    const dateStr = date.toISOString().split("T")[0];
+    return wfhHolidaysSet.has(dateStr);
+  };
+  const wfhCreateDate = (dateStr) => {
+    if (!dateStr) return new Date(NaN);
+    const s = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y, m, d] = s.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
+      const [m, d, y] = s.split("/").map(Number);
+      return new Date(y, m - 1, d);
+    }
+    const parsed = new Date(s);
+    if (isNaN(parsed.getTime())) return parsed;
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  };
+  const wfhCalculateWorkingDays = (startDate, endDate) => {
+    const makeMidday = (d) => { const nd = new Date(d); nd.setHours(12,0,0,0); return nd; };
+    let count = 0;
+    const current = makeMidday(startDate);
+    const last = makeMidday(endDate);
+    while (current <= last) {
+      if (current.getDay() !== 0 && !wfhIsHoliday(current)) count++;
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
   function createDateInput(id, labelText, iconClass) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("wfh-form-group");
@@ -5433,6 +5590,20 @@ function loadWFHRequest() {
       if (count <= 1) {
         const singleDate = createDateInput("calendar", "Select Date:", "fas fa-calendar");
         calendarContainer.appendChild(singleDate);
+        // Hook single-date change to auto-set count
+        const sd = singleDate.querySelector("#calendar");
+        sd.addEventListener("change", () => {
+          if (!sd.value) return;
+          const d = wfhCreateDate(sd.value);
+          if (d.getDay() === 0 || wfhIsHoliday(d)) {
+            sd.setCustomValidity("Cannot select Sunday or holiday");
+            sd.reportValidity();
+            sd.value = "";
+            return;
+          }
+          sd.setCustomValidity("");
+          document.getElementById("count").value = 1;
+        });
       } else {
         // Create a row for date range
         const dateRow = document.createElement("div");
@@ -5444,6 +5615,25 @@ function loadWFHRequest() {
         dateRow.appendChild(fromDate);
         dateRow.appendChild(toDate);
         calendarContainer.appendChild(dateRow);
+
+        // Attach range listeners to auto-calc count
+        const fd = fromDate.querySelector("#fromDate");
+        const td = toDate.querySelector("#toDate");
+        const recalc = () => {
+          if (!fd.value || !td.value) return;
+          const f = wfhCreateDate(fd.value);
+          const t = wfhCreateDate(td.value);
+          if (f > t) {
+            alert("From date cannot be after To date");
+            fd.value = ""; td.value = ""; return;
+          }
+          const wd = wfhCalculateWorkingDays(f, t);
+          document.getElementById("count").value = Math.max(1, wd);
+        };
+        fd.addEventListener("change", recalc);
+        td.addEventListener("change", recalc);
+        fd.addEventListener("input", recalc);
+        td.addEventListener("input", recalc);
       }
     }
   }
@@ -5500,7 +5690,7 @@ function loadWFHRequest() {
       // Get form data
       const reason = document.getElementById("reason").value.trim();
       const additionalReason = document.getElementById("additionalReason").value.trim();
-      const count = document.getElementById("count").value;
+      let count = document.getElementById("count").value;
       const attachment = attachmentInput.files[0];
       
       // Validation
@@ -5509,45 +5699,28 @@ function loadWFHRequest() {
         return;
       }
       
-      if (!count || count <= 0) {
-        alert("Please enter a valid number of days");
-        return;
-      }
-
-      // Get date values
+      // Determine dates first, then compute count like leave request
       let fromDate, toDate;
-      const countNum = parseInt(count);
-      
-      if (countNum === 1) {
-        const calendarInput = document.getElementById("calendar");
-        if (!calendarInput || !calendarInput.value) {
-          alert("Please select a date");
-          return;
-        }
-        fromDate = calendarInput.value;
-        toDate = calendarInput.value;
+      const singleDateEl = document.getElementById("calendar");
+      const fromDateEl = document.getElementById("fromDate");
+      const toDateEl = document.getElementById("toDate");
+      if (fromDateEl && toDateEl && fromDateEl.value && toDateEl.value) {
+        fromDate = fromDateEl.value;
+        toDate = toDateEl.value;
+        const f = wfhCreateDate(fromDate);
+        const t = wfhCreateDate(toDate);
+        if (f > t) { alert("From date cannot be after to date"); return; }
+        const wd = wfhCalculateWorkingDays(f, t);
+        count = Math.max(1, wd);
+      } else if (singleDateEl && singleDateEl.value) {
+        const d = wfhCreateDate(singleDateEl.value);
+        if (d.getDay() === 0 || wfhIsHoliday(d)) { alert("Cannot select Sunday or holiday"); return; }
+        fromDate = singleDateEl.value;
+        toDate = singleDateEl.value;
+        count = 1;
       } else {
-        const fromDateInput = document.getElementById("fromDate");
-        const toDateInput = document.getElementById("toDate");
-        
-        if (!fromDateInput || !fromDateInput.value) {
-          alert("Please select from date");
-          return;
-        }
-        
-        if (!toDateInput || !toDateInput.value) {
-          alert("Please select to date");
-          return;
-        }
-        
-        fromDate = fromDateInput.value;
-        toDate = toDateInput.value;
-        
-        // Validate date range
-        if (new Date(fromDate) > new Date(toDate)) {
-          alert("From date cannot be after to date");
-          return;
-        }
+        alert("Please select a date range or a single date");
+        return;
       }
 
       // Prepare form data

@@ -421,6 +421,53 @@ function getISTDate(date = new Date()) {
 
 // ✅ Routes
 
+// --- Company Holidays helpers ---
+const COMPANY_HOLIDAYS_MMDD = [
+  "01-26", // Republic Day
+  "03-14", // Doljatra (example)
+  "08-15", // Independence Day
+  "09-29", // Saptami
+  "10-01", // Astami
+  "10-02", // Nabami
+  "10-03", // Doshomi
+  "10-21", // Diwali
+  "12-25", // Christmas
+];
+
+function getCompanyHolidaysForYear(year) {
+  return COMPANY_HOLIDAYS_MMDD.map((mmdd) => `${year}-${mmdd}`);
+}
+
+function isCompanyHoliday(date) {
+  const mmdd = date.toISOString().slice(5, 10);
+  return COMPANY_HOLIDAYS_MMDD.includes(mmdd);
+}
+
+function countWorkingDaysExcludingSundaysAndHolidays(start, end) {
+  let count = 0;
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const day = d.getDay();
+    if (day === 0) continue; // Sunday
+    if (isCompanyHoliday(d)) continue; // Company holiday
+    count++;
+  }
+  return count;
+}
+
+// Public endpoint used by frontend to fetch holidays for a year
+app.get("/api/holidays", async (req, res) => {
+  try {
+    const y = parseInt(req.query.year);
+    if (!y || isNaN(y)) {
+      return res.status(400).json({ success: false, message: "year query param required" });
+    }
+    const holidays = getCompanyHolidaysForYear(y);
+    return res.json({ success: true, holidays });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // Login
 app.post("/api/login", async (req, res) => {
   try {
@@ -734,28 +781,7 @@ app.post(
           .status(400)
           .json({ success: false, message: "To date cannot be before from date." });
       }
-      // Company holiday list (recurring every year)
-      const holidays = [
-        "01-26", // Republic Day
-        "03-14", // Doljatra
-        "08-15", // Independence Day
-        "09-29", // Saptami
-        "10-01", // Astami
-        "10-02", // Nabami
-        "10-03", // Doshomi
-        "10-20", // Kalipujo
-        "10-21", // Diwali
-        "12-25", // Christmas
-      ];
-      // Check if any requested date is a holiday
-      let d = new Date(start);
-      while (d <= end) {
-        const mmdd = d.toISOString().slice(5, 10);
-        if (holidays.includes(mmdd)) {
-          return res.status(400).json({ success: false, message: `Cannot apply leave on a company holiday (${mmdd}).` });
-        }
-        d.setDate(d.getDate() + 1);
-      }
+      // Remove blocking: allow holidays inside range; recompute leaveCount to exclude Sundays/holidays
       // Prepare attachment (if any)
       let attachment = undefined;
       if (req.file) {
@@ -784,16 +810,17 @@ app.post(
       
       if (!spansMultipleMonths) {
         // Single month leave - create a single leave request
+        const workingDays = countWorkingDaysExcludingSundaysAndHolidays(start, end);
         const leave = new LeaveRequest({
           employeeId,
           name,
           reason,
-          leaveCount,
+          leaveCount: workingDays,
           fromDate: start,
           toDate: end,
           comments,
-          paidLeaves: Math.min(leaveCount, 2), // Max 2 paid leaves per month
-          unpaidLeaves: Math.max(0, leaveCount - 2),
+          paidLeaves: Math.min(workingDays, 2), // Max 2 paid leaves per month
+          unpaidLeaves: Math.max(0, workingDays - 2),
           leaveType: "Pending",
           attachment: attachment,
         });
@@ -854,9 +881,9 @@ app.post(
           breakdown: [{
             month: startMonth + 1,
             year: startYear,
-            paidLeaves: Math.min(leaveCount, 2),
-            unpaidLeaves: Math.max(0, leaveCount - 2),
-            days: leaveCount,
+            paidLeaves: Math.min(workingDays, 2),
+            unpaidLeaves: Math.max(0, workingDays - 2),
+            days: workingDays,
             fromDate: start,
             toDate: end,
           }],
@@ -867,8 +894,8 @@ app.post(
         let workingDaysByMonth = {}; // { '2025-06': [dates...], '2025-07': [dates...] }
         let d1 = new Date(start);
         while (d1 <= end) {
-          if (d1.getDay() !== 0) {
-            // skip Sundays
+          // Skip Sundays and company holidays
+          if (d1.getDay() !== 0 && !isCompanyHoliday(d1)) {
             const monthKey = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}`;
             if (!workingDaysByMonth[monthKey]) workingDaysByMonth[monthKey] = [];
             workingDaysByMonth[monthKey].push(new Date(d1));
