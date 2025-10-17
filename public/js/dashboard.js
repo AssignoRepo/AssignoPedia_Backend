@@ -262,6 +262,42 @@ function showGlobalToast(message, type = 'success') {
     // ignore
   }
 }
+
+// Inline banner near forms as an additional, reliable confirmation in production
+function showInlineBanner(container, message, type = 'success') {
+  try {
+    const host = typeof container === 'string' ? document.querySelector(container) : container;
+    if (!host) return;
+    let box = host.querySelector('.inline-status-banner');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'inline-status-banner';
+      box.style.margin = '10px 0 6px 0';
+      box.style.padding = '10px 12px';
+      box.style.borderRadius = '8px';
+      box.style.fontWeight = '600';
+      host.prepend(box);
+    }
+    if (type === 'success') {
+      box.style.background = 'rgba(40,167,69,0.12)';
+      box.style.border = '1px solid #28a745';
+      box.style.color = '#155724';
+    } else if (type === 'error') {
+      box.style.background = 'rgba(220,53,69,0.12)';
+      box.style.border = '1px solid #dc3545';
+      box.style.color = '#721c24';
+    } else {
+      box.style.background = 'rgba(52,58,64,0.12)';
+      box.style.border = '1px solid #343a40';
+      box.style.color = '#343a40';
+    }
+    box.textContent = message;
+    box.style.display = 'block';
+    setTimeout(() => { if (box) box.style.display = 'none'; }, 3500);
+  } catch (_) {
+    // ignore
+  }
+}
 let isRegularEmployee = false;
 let isAdminOrHRRecruiter = false;
 let mainContent = null;
@@ -2041,8 +2077,10 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (data.success) {
+          const section = document.querySelector('#mainContent .leave-request-card') || document.getElementById('mainContent');
           try { alert("Leave request submitted successfully!"); } catch (_) {}
           showGlobalToast("Leave request submitted successfully!", 'success');
+          showInlineBanner(section, "Leave request submitted successfully!", 'success');
           loadLeaveRequest();
         } else {
           alert(data.message || "Failed to submit leave request.");
@@ -5817,8 +5855,10 @@ function loadWFHRequest() {
       const result = await response.json();
 
       if (result.success) {
+        const section = document.querySelector('#mainContent .wfh-card') || document.getElementById('mainContent');
         try { alert("WFH request submitted successfully!"); } catch (_) {}
         showGlobalToast("WFH request submitted successfully!", 'success');
+        showInlineBanner(section, "WFH request submitted successfully!", 'success');
         loadDashboard(); // Return to dashboard
       } else {
         alert(`Error: ${result.message || "Failed to submit WFH request"}`);
