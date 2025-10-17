@@ -225,6 +225,43 @@ window.rejectLeaveRequest = async function (id) {
 let isAdminRole = false;
 let isHRRole = false;
 let isBDMorTL = false;
+
+// Lightweight global toast for success/error info (fallback if alert is blocked)
+function showGlobalToast(message, type = 'success') {
+  try {
+    const existing = document.getElementById('globalToast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'globalToast';
+    toast.textContent = message;
+    toast.style.position = 'fixed';
+    toast.style.right = '16px';
+    toast.style.top = '16px';
+    toast.style.zIndex = '9999';
+    toast.style.padding = '10px 14px';
+    toast.style.borderRadius = '8px';
+    toast.style.fontWeight = '600';
+    toast.style.boxShadow = '0 8px 22px rgba(0,0,0,0.15)';
+    if (type === 'success') {
+      toast.style.background = '#28a745';
+      toast.style.color = '#fff';
+    } else if (type === 'error') {
+      toast.style.background = '#dc3545';
+      toast.style.color = '#fff';
+    } else {
+      toast.style.background = '#343a40';
+      toast.style.color = '#fff';
+    }
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity .4s ease';
+    }, 2200);
+    setTimeout(() => toast.remove(), 2700);
+  } catch (_) {
+    // ignore
+  }
+}
 let isRegularEmployee = false;
 let isAdminOrHRRecruiter = false;
 let mainContent = null;
@@ -1711,7 +1748,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Function to check if a date is a holiday
     const isHoliday = (date) => {
-      const dateStr = date.toISOString().split("T")[0];
+      // Compare using local date components to avoid UTC offset shifting the day
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      const dateStr = `${y}-${m}-${d}`;
       return holidaysSet.has(dateStr);
     };
 
@@ -1797,6 +1838,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         } else {
           // If it's a valid working day, set leave count to 1
+          singleDateInput.setCustomValidity("");
           leaveCountInput.value = "1";
         }
       }
@@ -1958,8 +2000,15 @@ document.addEventListener("DOMContentLoaded", () => {
         formData.append("toDate", td);
       } else if (sd) {
         const d = createDate(sd);
+        const singleDateInput = document.querySelector('input[name="singleDate"]');
         if (d.getDay() === 0 || isHoliday(d)) {
+          // reset prior invalid state, inform and stop
+          if (singleDateInput) singleDateInput.setCustomValidity("Cannot apply leave on Sunday or holiday");
           alert("Cannot apply leave on Sunday or holiday");
+          if (singleDateInput) {
+            singleDateInput.reportValidity();
+            singleDateInput.setCustomValidity("");
+          }
           return;
         }
         formData.append("fromDate", sd);
@@ -1992,7 +2041,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
         const data = await res.json();
         if (data.success) {
-          alert("Leave request submitted successfully!");
+          try { alert("Leave request submitted successfully!"); } catch (_) {}
+          showGlobalToast("Leave request submitted successfully!", 'success');
           loadLeaveRequest();
         } else {
           alert(data.message || "Failed to submit leave request.");
@@ -5538,7 +5588,10 @@ function loadWFHRequest() {
 
   // Helpers mirroring leave request
   const wfhIsHoliday = (date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${y}-${m}-${d}`;
     return wfhHolidaysSet.has(dateStr);
   };
   const wfhCreateDate = (dateStr) => {
@@ -5714,7 +5767,16 @@ function loadWFHRequest() {
         count = Math.max(1, wd);
       } else if (singleDateEl && singleDateEl.value) {
         const d = wfhCreateDate(singleDateEl.value);
-        if (d.getDay() === 0 || wfhIsHoliday(d)) { alert("Cannot select Sunday or holiday"); return; }
+        if (d.getDay() === 0 || wfhIsHoliday(d)) {
+          const sd = document.getElementById("calendar");
+          if (sd) {
+            sd.setCustomValidity("Cannot select Sunday or holiday");
+            alert("Cannot select Sunday or holiday");
+            sd.reportValidity();
+            sd.setCustomValidity("");
+          }
+          return;
+        }
         fromDate = singleDateEl.value;
         toDate = singleDateEl.value;
         count = 1;
@@ -5755,7 +5817,8 @@ function loadWFHRequest() {
       const result = await response.json();
 
       if (result.success) {
-        alert("WFH request submitted successfully!");
+        try { alert("WFH request submitted successfully!"); } catch (_) {}
+        showGlobalToast("WFH request submitted successfully!", 'success');
         loadDashboard(); // Return to dashboard
       } else {
         alert(`Error: ${result.message || "Failed to submit WFH request"}`);

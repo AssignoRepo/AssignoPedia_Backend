@@ -439,7 +439,10 @@ function getCompanyHolidaysForYear(year) {
 }
 
 function isCompanyHoliday(date) {
-  const mmdd = date.toISOString().slice(5, 10);
+  // Use local month/day to avoid UTC shifting to previous/next day
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const mmdd = `${mm}-${dd}`;
   return COMPANY_HOLIDAYS_MMDD.includes(mmdd);
 }
 
