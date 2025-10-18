@@ -2078,7 +2078,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
         if (data.success) {
           const section = document.querySelector('#mainContent .leave-request-card') || document.getElementById('mainContent');
-          try { alert("Leave request submitted successfully!"); } catch (_) {}
+       ///   try { alert("Leave request submitted successfully!"); } catch (_) {}
           showGlobalToast("Leave request submitted successfully!", 'success');
           showInlineBanner(section, "Leave request submitted successfully!", 'success');
           loadLeaveRequest();
@@ -5856,7 +5856,7 @@ function loadWFHRequest() {
 
       if (result.success) {
         const section = document.querySelector('#mainContent .wfh-card') || document.getElementById('mainContent');
-        try { alert("WFH request submitted successfully!"); } catch (_) {}
+      //  try { alert("WFH request submitted successfully!"); } catch (_) {}
         showGlobalToast("WFH request submitted successfully!", 'success');
         showInlineBanner(section, "WFH request submitted successfully!", 'success');
         loadDashboard(); // Return to dashboard
