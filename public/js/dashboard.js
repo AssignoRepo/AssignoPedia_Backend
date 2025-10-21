@@ -2076,12 +2076,14 @@ document.addEventListener("DOMContentLoaded", () => {
           body: formData,
         });
         const data = await res.json();
+        console.log('data->', data);
         if (data.success) {
           const section = document.querySelector('#mainContent .leave-request-card') || document.getElementById('mainContent');
        ///   try { alert("Leave request submitted successfully!"); } catch (_) {}
           showGlobalToast("Leave request submitted successfully!", 'success');
-          showInlineBanner(section, "Leave request submitted successfully!", 'success');
-          loadLeaveRequest();
+       ///   showInlineBanner(section, "Leave request submitted successfully!", 'success');
+       console.log("leave request submitted succesffully"); 
+       loadLeaveRequest();
         } else {
           alert(data.message || "Failed to submit leave request.");
         }
@@ -5853,13 +5855,15 @@ function loadWFHRequest() {
       });
 
       const result = await response.json();
+      console.log("result", result);
 
       if (result.success) {
         const section = document.querySelector('#mainContent .wfh-card') || document.getElementById('mainContent');
       //  try { alert("WFH request submitted successfully!"); } catch (_) {}
         showGlobalToast("WFH request submitted successfully!", 'success');
-        showInlineBanner(section, "WFH request submitted successfully!", 'success');
-        loadDashboard(); // Return to dashboard
+       /// showInlineBanner(section, "WFH request submitted successfully!", 'success');
+      console.log("WFH request submitted successfully!");  
+       loadDashboard(); // Return to dashboard
       } else {
         alert(`Error: ${result.message || "Failed to submit WFH request"}`);
       }
