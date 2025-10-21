@@ -1,4 +1,6 @@
 // import socialMediaService from "./social-media-service.js";
+// Import Employee History module
+// Note: This will be loaded via script tag in HTML
 
 // Global function to handle Manage Account button click
 // function handleManageAccountClick() {
@@ -264,40 +266,7 @@ function showGlobalToast(message, type = 'success') {
 }
 
 // Inline banner near forms as an additional, reliable confirmation in production
-function showInlineBanner(container, message, type = 'success') {
-  try {
-    const host = typeof container === 'string' ? document.querySelector(container) : container;
-    if (!host) return;
-    let box = host.querySelector('.inline-status-banner');
-    if (!box) {
-      box = document.createElement('div');
-      box.className = 'inline-status-banner';
-      box.style.margin = '10px 0 6px 0';
-      box.style.padding = '10px 12px';
-      box.style.borderRadius = '8px';
-      box.style.fontWeight = '600';
-      host.prepend(box);
-    }
-    if (type === 'success') {
-      box.style.background = 'rgba(40,167,69,0.12)';
-      box.style.border = '1px solid #28a745';
-      box.style.color = '#155724';
-    } else if (type === 'error') {
-      box.style.background = 'rgba(220,53,69,0.12)';
-      box.style.border = '1px solid #dc3545';
-      box.style.color = '#721c24';
-    } else {
-      box.style.background = 'rgba(52,58,64,0.12)';
-      box.style.border = '1px solid #343a40';
-      box.style.color = '#343a40';
-    }
-    box.textContent = message;
-    box.style.display = 'block';
-    setTimeout(() => { if (box) box.style.display = 'none'; }, 3500);
-  } catch (_) {
-    // ignore
-  }
-}
+
 let isRegularEmployee = false;
 let isAdminOrHRRecruiter = false;
 let mainContent = null;
@@ -1199,6 +1168,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-attendance").style.display = "";
     document.getElementById("btn-leave").style.display = "";
     document.getElementById("btn-pay-slip").style.display = "";
+    // Hide Employee History for admin (as per requirements)
+    document.getElementById("btn-employee-history").style.display = "none";
 
     // Add admin-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
@@ -1341,6 +1312,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-leave").style.display = "";
     document.getElementById("btn-pay-slip").style.display = "";
     document.getElementById("btn-social").style.display = "";
+    // Show Employee History for HR roles
+    document.getElementById("btn-employee-history").style.display = "";
 
     // Add HR-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
@@ -1503,6 +1476,23 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // Add Employee History button for HR roles
+    if (!document.getElementById("btn-employee-history")) {
+      const employeeHistoryBtn = document.createElement("button");
+      employeeHistoryBtn.id = "btn-employee-history";
+      employeeHistoryBtn.className = "sidebar-btn";
+      employeeHistoryBtn.innerHTML = '<i class="fas fa-history"></i> Employee History';
+      sidebarNav.insertBefore(employeeHistoryBtn, document.getElementById("btn-stats"));
+      employeeHistoryBtn.addEventListener("click", () => {
+        setActive("btn-employee-history");
+        loadEmployeeHistory();
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("show");
+          document.getElementById("sidebarOverlay").classList.remove("active");
+        }
+      });
+    }
+
   } else if (isBDMorTL) {
     // BDM/TL: Show limited features
     document.getElementById("btn-attendance").style.display = "";
@@ -1514,6 +1504,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-manage-employee").style.display = "none";
     document.getElementById("btn-stats").style.display = "none";
     document.getElementById("btn-pay-slip").style.display = "none";
+    // Show Employee History for BDM/TL roles
+    document.getElementById("btn-employee-history").style.display = "";
 
     // Add BDM/TL-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
@@ -1552,6 +1544,22 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
+    // Add Employee History button for BDM/TL roles
+    if (!document.getElementById("btn-employee-history")) {
+      const employeeHistoryBtn = document.createElement("button");
+      employeeHistoryBtn.id = "btn-employee-history";
+      employeeHistoryBtn.className = "sidebar-btn";
+      employeeHistoryBtn.innerHTML = '<i class="fas fa-history"></i> Employee History';
+      sidebarNav.insertBefore(employeeHistoryBtn, document.getElementById("btn-stats"));
+      employeeHistoryBtn.addEventListener("click", () => {
+        setActive("btn-employee-history");
+        loadEmployeeHistory();
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("show");
+          document.getElementById("sidebarOverlay").classList.remove("active");
+        }
+      });
+    }
   } else {
     // Regular Employee: Show basic features
     document.getElementById("btn-attendance").style.display = "";
@@ -1563,6 +1571,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-manage-employee").style.display = "none";
     document.getElementById("btn-stats").style.display = "none";
     document.getElementById("btn-pay-slip").style.display = "none";
+    // Show Employee History for regular employees
+    document.getElementById("btn-employee-history").style.display = "";
 
     // Add employee-specific buttons to sidebar
     const sidebarNav = document.querySelector(".sidebar-nav");
@@ -1593,6 +1603,23 @@ document.addEventListener("DOMContentLoaded", () => {
       sidebarNav.insertBefore(notificationsBtn, document.getElementById("btn-stats"));
       notificationsBtn.addEventListener("click", () => {
         loadNotifications();
+        if (window.innerWidth <= 768) {
+          document.getElementById("sidebar").classList.remove("show");
+          document.getElementById("sidebarOverlay").classList.remove("active");
+        }
+      });
+    }
+
+    // Add Employee History button
+    if (!document.getElementById("btn-employee-history")) {
+      const employeeHistoryBtn = document.createElement("button");
+      employeeHistoryBtn.id = "btn-employee-history";
+      employeeHistoryBtn.className = "sidebar-btn";
+      employeeHistoryBtn.innerHTML = '<i class="fas fa-history"></i> Employee History';
+      sidebarNav.insertBefore(employeeHistoryBtn, document.getElementById("btn-stats"));
+      employeeHistoryBtn.addEventListener("click", () => {
+        setActive("btn-employee-history");
+        loadEmployeeHistory();
         if (window.innerWidth <= 768) {
           document.getElementById("sidebar").classList.remove("show");
           document.getElementById("sidebarOverlay").classList.remove("active");
@@ -2076,7 +2103,7 @@ document.addEventListener("DOMContentLoaded", () => {
           body: formData,
         });
         const data = await res.json();
-        console.log('data->', data);
+    
         if (data.success) {
           const section = document.querySelector('#mainContent .leave-request-card') || document.getElementById('mainContent');
        ///   try { alert("Leave request submitted successfully!"); } catch (_) {}
@@ -5855,8 +5882,7 @@ function loadWFHRequest() {
       });
 
       const result = await response.json();
-      console.log("result", result);
-
+   
       if (result.success) {
         const section = document.querySelector('#mainContent .wfh-card') || document.getElementById('mainContent');
       //  try { alert("WFH request submitted successfully!"); } catch (_) {}
@@ -6359,6 +6385,13 @@ if (document.getElementById("btn-notice-board")) {
 
 if (document.getElementById("btn-notifications")) {
   document.getElementById("btn-notifications").addEventListener("click", loadNotifications);
+}
+
+if (document.getElementById("btn-employee-history")) {
+  document.getElementById("btn-employee-history").addEventListener("click", () => {
+    setActive("btn-employee-history");
+    loadEmployeeHistory();
+  });
 }
 
 // Notice Board Section (Admin/HR only)
