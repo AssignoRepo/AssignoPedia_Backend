@@ -8,7 +8,7 @@ const path = require("path");
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 const { GridFSBucket, ObjectId, Admin } = require("mongodb");
-const nodemailer = require("nodemailer");
+// const nodemailer = require("nodemailer"); // Disabled to prevent SMTP timeout errors
 const puppeteer = require('puppeteer');
 const fs=require('fs');
 
@@ -382,36 +382,35 @@ async function restrictAttendanceByIP(req, res, next) {
   // next();
 }
 
-// Nodemailer transporter setup (use your SMTP config or Gmail for demo)
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 465,
-  secure: true,
-  auth: {
-    user: process.env.SMTP_USER, // no-reply email
-    pass: process.env.SMTP_PASS,
-  },
-});
-console.log("SMTP Config:", process.env.SMTP_HOST, process.env.SMTP_PORT, process.env.SMTP_USER);
+// Email functionality disabled to prevent SMTP timeout errors in production
+// const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST || "smtp.gmail.com",
+//   port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 465,
+//   secure: true,
+//   auth: {
+//     user: process.env.SMTP_USER, // no-reply email
+//     pass: process.env.SMTP_PASS,
+//   },
+// });
+// console.log("SMTP Config:", process.env.SMTP_HOST, process.env.SMTP_PORT, process.env.SMTP_USER);
 
-// Utility: Send email
-async function sendNoticeEmail({ to, subject, text }) {
-  if (!to) {
-    console.log("No recipient email provided:", to);
-    return;
-  }
-  try {
-    let info = await transporter.sendMail({
-      from: `No Reply <${process.env.SMTP_USER}>`,
-      to,
-      subject,
-      text,
-    });
-    console.log("Email sent:", info.messageId, "to:", to);
-  } catch (err) {
-    console.error("Error sending email:", err);
-  }
-}
+// async function sendNoticeEmail({ to, subject, text }) {
+//   if (!to) {
+//     console.log("No recipient email provided:", to);
+//     return;
+//   }
+//   try {
+//     let info = await transporter.sendMail({
+//       from: `No Reply <${process.env.SMTP_USER}>`,
+//       to,
+//       subject,
+//       text,
+//     });
+//     console.log("Email sent:", info.messageId, "to:", to);
+//   } catch (err) {
+//     console.error("Error sending email:", err);
+//   }
+// }
 
 // Helper to get IST date
 function getISTDate(date = new Date()) {
@@ -845,13 +844,14 @@ app.post(
             reason,
           });
           await notification.save();
-          if (recipient.email) {
-            await sendNoticeEmail({
-              to: recipient.email,
-              subject: `New Leave Request - ${name}`,
-              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
-            });
-          }
+          // Email notification disabled to prevent SMTP timeout errors
+          // if (recipient.email) {
+          //   await sendNoticeEmail({
+          //     to: recipient.email,
+          //     subject: `New Leave Request - ${name}`,
+          //     text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
+          //   });
+          // }
         }
         
         // --- Notify Team Leader if not already notified ---
@@ -869,13 +869,14 @@ app.post(
           });
           await notification.save();
           const teamLeader = await Employee.findOne({ employeeId: teamLeaderId });
-          if (teamLeader?.email) {
-            await sendNoticeEmail({
-              to: teamLeader.email,
-              subject: `New Leave Request - ${name}`,
-              text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
-            });
-          }
+          // Email notification disabled to prevent SMTP timeout errors
+          // if (teamLeader?.email) {
+          //   await sendNoticeEmail({
+          //     to: teamLeader.email,
+          //     subject: `New Leave Request - ${name}`,
+          //     text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${start.toDateString()}\nTo: ${end.toDateString()}\n\nPlease review and approve/reject this request.`
+          //   });
+          // }
         }
         
         res.json({
@@ -992,13 +993,14 @@ app.post(
               reason,
             });
             await notification.save();
-            if (recipient.email) {
-              await sendNoticeEmail({
-                to: recipient.email,
-                subject: `New Leave Request - ${name}`,
-                text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
-              });
-            }
+            // Email notification disabled to prevent SMTP timeout errors
+            // if (recipient.email) {
+            //   await sendNoticeEmail({
+            //     to: recipient.email,
+            //     subject: `New Leave Request - ${name}`,
+            //     text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+            //   });
+            // }
           }
           
           // --- Notify Team Leader if not already notified ---
@@ -1016,13 +1018,14 @@ app.post(
             });
             await notification.save();
             const teamLeader = await Employee.findOne({ employeeId: teamLeaderId });
-            if (teamLeader?.email) {
-              await sendNoticeEmail({
-                to: teamLeader.email,
-                subject: `New Leave Request - ${name}`,
-                text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
-              });
-            }
+            // Email notification disabled to prevent SMTP timeout errors
+            // if (teamLeader?.email) {
+            //   await sendNoticeEmail({
+            //     to: teamLeader.email,
+            //     subject: `New Leave Request - ${name}`,
+            //     text: `A new leave request has been submitted:\n\nEmployee: ${name} (${employeeId})\nReason: ${reason}\nDuration: ${leaveCount} days\nFrom: ${from.toDateString()}\nTo: ${to.toDateString()}\n\nPlease review and approve/reject this request.`
+            //   });
+            // }
           }
           
           responses.push({
@@ -1106,13 +1109,14 @@ app.patch(
       });
       await notification.save();
       const employee = await Employee.findOne({ employeeId: leave.employeeId });
-      if (employee && employee.email) {
-        await sendNoticeEmail({
-          to: employee.email,
-          subject: `Leave Request Approved - ${leave.name}`,
-          text: `Your leave request has been approved by ${req.user.name || `${req.user.firstName} ${req.user.lastName}`}.\n\nDetails:\nDuration: ${leave.leaveCount} days\nFrom: ${leave.fromDate.toDateString()}\nTo: ${leave.toDate.toDateString()}\nReason: ${leave.reason}\n\nThis is an automated no-reply email.`
-        });
-      }
+      // Email notification disabled to prevent SMTP timeout errors
+      // if (employee && employee.email) {
+      //   await sendNoticeEmail({
+      //     to: employee.email,
+      //     subject: `Leave Request Approved - ${leave.name}`,
+      //     text: `Your leave request has been approved by ${req.user.name || `${req.user.firstName} ${req.user.lastName}`}.\n\nDetails:\nDuration: ${leave.leaveCount} days\nFrom: ${leave.fromDate.toDateString()}\nTo: ${leave.toDate.toDateString()}\nReason: ${leave.reason}\n\nThis is an automated no-reply email.`
+      //   });
+      // }
       res.json({ success: true, message: "Leave request approved" });
     } catch (err) {
       res.status(500).json({ success: false, message: "Server error" });
@@ -1649,29 +1653,31 @@ app.post("/api/notifications", authenticateToken, requireHRorAdmin, async (req, 
       const employees = await Employee.find({}, "email");
       const emails = employees.map((e) => e.email).filter(Boolean);
       console.log("Broadcasting notice to emails:", emails);
-      if (emails.length) {
-        await sendNoticeEmail({
-          to: emails,
-          subject: `Notice from ${senderName}`,
-          text: `${message}\n\nThis is an automated no-reply email. Please do not reply.`,
-        });
-      }
+      // Email notification disabled to prevent SMTP timeout errors
+      // if (emails.length) {
+      //   await sendNoticeEmail({
+      //     to: emails,
+      //     subject: `Notice from ${senderName}`,
+      //     text: `${message}\n\nThis is an automated no-reply email. Please do not reply.`,
+      //   });
+      // }
     } else {
       // Individual: one doc per recipient
       notif = new Notification({ message, senderId, senderName, recipientId, isForAll: false });
       await notif.save();
       // Send email to the recipient
       const employee = await Employee.findOne({ employeeId: recipientId });
-      if (employee && employee.email) {
-        console.log("Sending notice to employeeId:", recipientId, "email:", employee.email);
-        await sendNoticeEmail({
-          to: employee.email,
-          subject: `Notice from ${senderName}`,
-          text: `${message}\n\nThis is an automated no-reply email. Please do not reply.`,
-        });
-      } else {
-        console.warn("No email found for employeeId:", recipientId);
-      }
+      // Email notification disabled to prevent SMTP timeout errors
+      // if (employee && employee.email) {
+      //   console.log("Sending notice to employeeId:", recipientId, "email:", employee.email);
+      //   await sendNoticeEmail({
+      //     to: employee.email,
+      //     subject: `Notice from ${senderName}`,
+      //     text: `${message}\n\nThis is an automated no-reply email. Please do not reply.`,
+      //   });
+      // } else {
+      //   console.warn("No email found for employeeId:", recipientId);
+      // }
     }
     return res.json({ success: true, notification: notif });
   } catch (err) {
@@ -1798,14 +1804,14 @@ app.post("/api/wfh-request", authenticateToken, wfhAttachmentUpload.single("atta
       });
       await notification.save();
 
-      // Send email notification
-      if (recipient.email) {
-        await sendNoticeEmail({
-          to: recipient.email,
-          subject: `New WFH Request - ${employeeName}`,
-          text: `A new WFH request has been submitted:\n\nEmployee: ${employeeName} (${employeeId})\nRole: ${employeeRole}\nReason: ${reason}\nDuration: ${wfhCount} days\nFrom: ${fromDate}\nTo: ${toDate}\n\nPlease review and approve/reject this request.`
-        });
-      }
+      // Email notification disabled to prevent SMTP timeout errors
+      // if (recipient.email) {
+      //   await sendNoticeEmail({
+      //     to: recipient.email,
+      //     subject: `New WFH Request - ${employeeName}`,
+      //     text: `A new WFH request has been submitted:\n\nEmployee: ${employeeName} (${employeeId})\nRole: ${employeeRole}\nReason: ${reason}\nDuration: ${wfhCount} days\nFrom: ${fromDate}\nTo: ${toDate}\n\nPlease review and approve/reject this request.`
+      //   });
+      // }
     }
     // --- Notify Team Leader if not already notified ---
     const team = await Team.findOne({ team_members: employeeId });
@@ -1820,13 +1826,14 @@ app.post("/api/wfh-request", authenticateToken, wfhAttachmentUpload.single("atta
       });
       await notification.save();
       const teamLeader = await Employee.findOne({ employeeId: teamLeaderId });
-      if (teamLeader?.email) {
-        await sendNoticeEmail({
-          to: teamLeader.email,
-          subject: `New WFH Request - ${employeeName}`,
-          text: `A new WFH request has been submitted:\n\nEmployee: ${employeeName} (${employeeId})\nRole: ${employeeRole}\nReason: ${reason}\nDuration: ${wfhCount} days\nFrom: ${fromDate}\nTo: ${toDate}\n\nPlease review and approve/reject this request.`
-        });
-      }
+      // Email notification disabled to prevent SMTP timeout errors
+      // if (teamLeader?.email) {
+      //   await sendNoticeEmail({
+      //     to: teamLeader.email,
+      //     subject: `New WFH Request - ${employeeName}`,
+      //     text: `A new WFH request has been submitted:\n\nEmployee: ${employeeName} (${employeeId})\nRole: ${employeeRole}\nReason: ${reason}\nDuration: ${wfhCount} days\nFrom: ${fromDate}\nTo: ${toDate}\n\nPlease review and approve/reject this request.`
+      //   });
+      // }
     }
 
     res.json({ 
