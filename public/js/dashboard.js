@@ -26,7 +26,7 @@
    const ATTENDANCE_CHECKOUT_KEY = 'attendanceCheckOutTime';
    const ATTENDANCE_DATE_KEY = 'attendanceDate';
    const TEAM_MEMBER_EXCLUDE_ROLES = [
-     'admin', 'hr_admin', 'hr_recruiter','hr_executive' ,'team_leader', 'senior_writer', 'bdm'
+     'admin', 'hr_admin', 'hr_recruiter','hr_executive' ,'team_leader', 'Independent_writer', 'bdm'
    ];
 window.approveLeaveRequest = async function (id) {
   try {
@@ -8916,13 +8916,13 @@ async function loadOrganizationStructure() {
     admin: [],
     hr_recruiter: [],
     bdm: [],
-    senior_writer: [],
+    Independent_writer: [],
   };
   allEmployees.forEach(emp => {
     if (emp.role === "admin" || emp.role === "hr_admin") roleGroups.admin.push(emp);
     else if (emp.role === "hr_recruiter" || emp.role === "hr_manager" || emp.role === "hr_executive") roleGroups.hr_recruiter.push(emp);
     else if (emp.role === "bdm") roleGroups.bdm.push(emp);
-    else if (emp.role === "senior_writer") roleGroups.senior_writer.push(emp);
+    else if (emp.role === "Independent_writer") roleGroups.Independent_writer.push(emp);
   });
 
   // Card configs for each role
@@ -8930,7 +8930,7 @@ async function loadOrganizationStructure() {
     { key: "admin", label: "Admin", icon: "fa-crown", color: "#ffb347" },
     { key: "hr_recruiter", label: "HR / Recruiter", icon: "fa-user-tie", color: "#43cea2" },
     { key: "bdm", label: "BDM", icon: "fa-chart-line", color: "#764ba2" },
-    { key: "senior_writer", label: "Senior Writer", icon: "fa-pen-nib", color: "#ff758c" },
+    { key: "Independent_writer", label: "Independent Writer", icon: "fa-pen-nib", color: "#ff758c" },
   ];
 
   // Render role cards

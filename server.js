@@ -100,7 +100,7 @@ const employeeSchema = new mongoose.Schema(
         "junior_developer",
         "senior_developer",
         "junior_writer",
-        "senior_writer",
+        "Independent_writer",
         "team_leader",
         "bdm",
         "hr_recruiter",
@@ -108,6 +108,7 @@ const employeeSchema = new mongoose.Schema(
         "hr_manager",
         "hr_admin",
         "admin",
+        "None"
       ],
       default: "junior_developer",
     },
