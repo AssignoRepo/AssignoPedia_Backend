@@ -1677,8 +1677,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
   }
 
-  // Add Word Count Entry button to sidebar for BDM/TL only (not admin/HR)
-  if (isBDMorTL || isAdminOrHRRecruiter) {
+  // Add Word Count Entry button to sidebar for all roles (Admin, HR, BDM/TL, regular employees)
+  if (isBDMorTL || isAdminOrHRRecruiter || isAdminRole || isHRRole || isRegularEmployee) {
     const sidebarNav = document.querySelector(".sidebar-nav");
     if (!document.getElementById("btn-word-count-entry")) {
       const wordCountBtn = document.createElement("button");
@@ -4638,8 +4638,17 @@ async function loadDashboard() {
   }).join("");
 
   // Check if user should see word count sections
-  const showWordCount = isRegularEmployee; // Only regular employees see word count
+  // Updated: all roles (admin, HR, BDM/TL, regular employee) can see word count
+  const showWordCount = true;
   const isTeamLeader = employee.role === "team_leader";
+
+  // Helper to get today's date in IST (YYYY-MM-DD) for dashboard
+  function getCurrentDateISOForDashboard() {
+    const now = new Date();
+    const istOffsetMs = 5.5 * 60 * 60 * 1000; // UTC+5:30
+    const istNow = new Date(now.getTime() + istOffsetMs);
+    return istNow.toISOString().slice(0, 10);
+  }
 
   mainContent.innerHTML = `
       <div class="my-dashboard-modern dashboard-main-section" id="dashboardMainSection">
@@ -4655,6 +4664,7 @@ async function loadDashboard() {
         </div>
         <div class="my-dashboard-summary-cards">
           <div class="my-dashboard-summary-card" id="attendanceCountCard"><div class="count">-</div><div>Attendance</div></div>
+          <div class="my-dashboard-summary-card" id="todayLoginCard"><div class="count">-</div><div>Today's Log-In</div></div>
           <div class="my-dashboard-summary-card" id="paidLeavesCard"><div class="count">-</div><div>Paid Leaves</div></div>
           <div class="my-dashboard-summary-card" id="unpaidLeavesCard"><div class="count">-</div><div>Unpaid Leaves</div></div>
         </div>
@@ -4738,7 +4748,9 @@ async function loadDashboard() {
         @media (max-width: 900px) { .my-dashboard-cards, .my-dashboard-two-calendars { flex-direction: column; gap: 1.2rem; } }
         @media (max-width: 600px) { .my-dashboard-modern { padding: 10px 2vw; } .my-dashboard-card { min-width: 0; padding: 8px 2px 6px 2px; max-height: 260px; } .my-dashboard-card canvas { height: 150px !important; max-height: 150px !important; min-height: 120px; } }
         .my-dashboard-calendar-flex { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-        .my-dashboard-calendar-day { width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.98rem; background: #e0c3fc; color: #3a2c5c; cursor: pointer; transition: 0.2s; }
+        .my-dashboard-calendar-day { width: 34px; min-height: 34px; padding: 2px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.9rem; line-height: 1.1; background: #e0c3fc; color: #3a2c5c; cursor: pointer; transition: 0.2s; }
+        .my-dashboard-calendar-day .date-number { font-weight: 600; font-size: 0.9rem; }
+        .my-dashboard-calendar-day .login-time { font-size: 0.7rem; margin-top: 1px; opacity: 0.9; }
         .my-dashboard-calendar-day.present { background: #43cea2; color: #fff; font-weight: bold; }
         .my-dashboard-calendar-day.absent { background: #ff758c; color: #fff; font-weight: bold; }
         .my-dashboard-calendar-day.leave-paid { background: #764ba2; color: #fff; font-weight: bold; }
@@ -4763,9 +4775,11 @@ async function loadDashboard() {
     const attendanceCountCard = document.getElementById("attendanceCountCard");
     const paidLeavesCard = document.getElementById("paidLeavesCard");
     const unpaidLeavesCard = document.getElementById("unpaidLeavesCard");
+    const todayLoginCard = document.getElementById("todayLoginCard");
     const attendanceCalendar = document.getElementById("myDashboardAttendanceCalendar");
     const leavesCalendar = document.getElementById("myDashboardLeavesCalendar");
     if (attendanceCountCard && attendanceCountCard.querySelector(".count")) attendanceCountCard.querySelector(".count").textContent = "...";
+    if (todayLoginCard && todayLoginCard.querySelector(".count")) todayLoginCard.querySelector(".count").textContent = "...";
     if (paidLeavesCard && paidLeavesCard.querySelector(".count")) paidLeavesCard.querySelector(".count").textContent = "...";
     if (unpaidLeavesCard && unpaidLeavesCard.querySelector(".count")) unpaidLeavesCard.querySelector(".count").textContent = "...";
     if (attendanceCalendar) attendanceCalendar.innerHTML = "<div>Loading...</div>";
@@ -4782,6 +4796,7 @@ async function loadDashboard() {
     const data = await fetchSummary(month, year);
     if (!data || !data.success) {
       if (attendanceCountCard && attendanceCountCard.querySelector(".count")) attendanceCountCard.querySelector(".count").textContent = "-";
+      if (todayLoginCard && todayLoginCard.querySelector(".count")) todayLoginCard.querySelector(".count").textContent = "-";
       if (paidLeavesCard && paidLeavesCard.querySelector(".count")) paidLeavesCard.querySelector(".count").textContent = "-";
       if (unpaidLeavesCard && unpaidLeavesCard.querySelector(".count")) unpaidLeavesCard.querySelector(".count").textContent = "-";
       if (attendanceCalendar) attendanceCalendar.innerHTML = "<div>No data</div>";
@@ -4790,6 +4805,25 @@ async function loadDashboard() {
       if (attendanceCountCard && attendanceCountCard.querySelector(".count")) attendanceCountCard.querySelector(".count").textContent = data.attendanceCount;
       if (paidLeavesCard && paidLeavesCard.querySelector(".count")) paidLeavesCard.querySelector(".count").textContent = data.paidLeaves;
       if (unpaidLeavesCard && unpaidLeavesCard.querySelector(".count")) unpaidLeavesCard.querySelector(".count").textContent = data.unpaidLeaves;
+
+      // Set today's log-in time card using today's attendance record (IST-based)
+      if (todayLoginCard && todayLoginCard.querySelector(".count")) {
+        let loginDisplay = "-";
+        if (Array.isArray(data.days) && data.days.length) {
+          const todayISO = getCurrentDateISOForDashboard();
+          const todayData = data.days.find((d) => d.date === todayISO);
+          if (todayData && todayData.checkIn) {
+            const checkInDate = new Date(todayData.date + "T" + todayData.checkIn);
+            loginDisplay = checkInDate.toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Asia/Kolkata",
+            });
+          }
+        }
+        todayLoginCard.querySelector(".count").textContent = loginDisplay;
+      }
       if (attendanceCalendar) renderAttendanceCalendar("myDashboardAttendanceCalendar", data.days);
       if (leavesCalendar) renderLeavesCalendar("myDashboardLeavesCalendar", data.days);
     }
@@ -4898,10 +4932,17 @@ async function loadDashboard() {
     }
     let html = '<div class="my-dashboard-calendar-flex">';
     days.forEach((day) => {
-      let status = day.attendanceStatus === "Present" ? "present" : "absent";
-      html += `<div class="my-dashboard-calendar-day ${status}" title="${day.date}">${parseInt(
-        day.date.split("-")[2]
-      )}</div>`;
+      const status = day.attendanceStatus === "Present" ? "present" : "absent";
+      const dayNumber = parseInt(day.date.split("-")[2]);
+      // Use recorded check-in time (if any) for this day
+      const loginTime = day && day.checkIn ? day.checkIn : "";
+      const tooltip = loginTime
+        ? `${day.date} | Log-In: ${loginTime}`
+        : `${day.date} | No log-in`;
+      html += `<div class="my-dashboard-calendar-day ${status}" title="${tooltip}">` +
+        `<span class="date-number">${dayNumber}</span>` +
+        `<span class="login-time">${loginTime || "-"}</span>` +
+        `</div>`;
     });
     html += "</div>";
     container.innerHTML = html;
@@ -6624,7 +6665,13 @@ function loadNotifications() {
   setActive("btn-notifications");
   mainContent.innerHTML = `
       <div class="admin-content-section notice-board-section" id="notification-section">
-        <h2><i class="fas fa-bell"></i> Notifications</h2>
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <h2 style="margin:0;"><i class="fas fa-bell"></i> Notifications</h2>
+          <button id="markAllNotificationsReadBtn" style="margin-left: 100px;padding:4px 10px;border-radius:999px;border:none;background:linear-gradient(90deg,#764ba2,#43cea2);color:#fff;font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+            <i class="fas fa-check-double"></i>
+            Mark all as read
+          </button>
+        </div>
         <div id="notificationsList">
           <div class="loading-notifications">Loading notifications...</div>
         </div>
@@ -6634,6 +6681,24 @@ function loadNotifications() {
   // Load notifications
   loadNotificationsList();
   injectProfileSidebar();
+
+  // Attach handler for "Mark all as read"
+  const markAllBtn = document.getElementById("markAllNotificationsReadBtn");
+  if (markAllBtn) {
+    markAllBtn.addEventListener("click", async () => {
+      markAllBtn.disabled = true;
+      markAllBtn.textContent = "Marking...";
+      try {
+        await markAllNotificationsAsRead();
+        await loadNotificationsList(); // refresh list and badge
+      } catch (err) {
+        console.error("Failed to mark all notifications as read", err);
+      } finally {
+        markAllBtn.disabled = false;
+        markAllBtn.textContent = "Mark all as read";
+      }
+    });
+  }
 }
 
 // Add My Profile floating avatar button and sidebar
@@ -6788,7 +6853,7 @@ function injectProfileSidebar() {
     }</div>
         <div style="margin-bottom: 12px;"><strong>Employee ID:</strong> ${emp.employeeId}</div>
         <div style="margin-bottom: 12px;"><strong>Email:</strong> ${emp.email || "-"}</div>
-        <div style="margin-bottom: 12px;"><strong>Role:</strong> ${emp.role}</div>
+        <div style="margin-bottom: 12px;"><strong>Role:</strong> ${(emp.role || "").toUpperCase()}</div>
         <div style="margin-bottom: 12px;"><strong>Mobile:</strong> ${emp.mobile || "-"}</div>
         <div style="margin-bottom: 12px;"><strong>Date of Joining:</strong> ${
           emp.doj ? new Date(emp.doj).toLocaleDateString() : "-"
@@ -7825,7 +7890,7 @@ async function loadNotificationsList() {
     //   });
     // });
 
-    // Add click handlers to mark as read
+    // Add click handlers to  <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">read
     document.querySelectorAll(".notice-item").forEach((item) => {
       item.addEventListener("click", async function () {
         const noticeId = this.dataset.noticeId;
@@ -7880,6 +7945,23 @@ async function markNotificationAsRead(noticeId) {
     });
   } catch (err) {
     // Ignore errors for now
+  }
+}
+
+// --- Mark all notifications as read in backend ---
+async function markAllNotificationsAsRead() {
+  try {
+    const token = localStorage.getItem("jwtToken");
+    const res = await fetch("/api/notifications/mark-all-read", {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      throw new Error("Failed to mark all notifications as read");
+    }
+  } catch (err) {
+    console.error("Failed to mark all notifications as read", err);
+    throw err;
   }
 }
 // --- Update notification badge using backend data ---
@@ -7941,7 +8023,7 @@ function showProfileInMainContent() {
           <h3>${employee.name}</h3>
           <p><strong>ID:</strong> ${employee.employeeId}</p>
           <p><strong>Email:</strong> ${employee.email}</p>
-          <p><strong>Role:</strong> ${employee.role}</p>
+          <p><strong>Role:</strong> ${(employee.role || "").toUpperCase()}</p>
           <p><strong>Mobile:</strong> ${employee.mobile}</p>
           <p><strong>DOJ:</strong> ${new Date(employee.doj).toLocaleDateString()}</p>
           <p><strong>ID Proof:</strong> ${employee.idCardType || "-"} (${employee.idCardNumber || "N/A"})</p>

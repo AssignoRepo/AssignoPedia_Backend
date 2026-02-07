@@ -1,6 +1,9 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const dns = require('node:dns');
+dns.setServers(['8.8.8.8', '8.8.4.4']);   // or ['1.1.1.1', '1.0.0.1'] for Cloudflare
+  
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -1720,6 +1723,20 @@ app.patch("/api/notifications/:id/read", authenticateToken, async (req, res) => 
       notif.readBy.push(employeeId);
       await notif.save();
     }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+});
+
+// --- API: Mark all notifications as read for current user ---
+app.patch("/api/notifications/mark-all-read", authenticateToken, async (req, res) => {
+  try {
+    const employeeId = req.user.employeeId;
+    await Notification.updateMany(
+      { $or: [{ recipientId: employeeId }, { isForAll: true }], readBy: { $ne: employeeId } },
+      { $addToSet: { readBy: employeeId } }
+    );
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: "Server error", error: err.message });
